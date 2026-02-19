@@ -2,54 +2,58 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>R-NET</title>
 
 <style>
-    /* Fundo da página */
-    body {
-        margin: 0;
-        background-color: #f2f2f2;
-        font-family: Arial, Helvetica, sans-serif;
+/* Fundo */
+body {
+    margin: 0;
+    background-color: #f2f2f2;
+    font-family: Arial, Helvetica, sans-serif;
+}
 
-        /* Centralização total */
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-    }
+/* Área principal */
+.container {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
 
-    /* Área principal */
-    .container {
-        text-align: center;
-        width: 90%;
-        max-width: 500px;
-    }
+/* Logo no topo */
+.logo {
+    width: 300px;
+    margin-top: 60px;
+}
 
-    /* Logo R-NET */
-    .logo {
-        width: 45%;
-        max-width: 220px;
-        margin-bottom: 50px;
-    }
+/* Espaço grande até o meio */
+.spacer-top {
+    flex: 1;
+}
 
-    /* Welcome */
-    .welcome {
-        width: 90%;
-        max-width: 380px;
-        margin-bottom: 50px;
-    }
+/* Welcome no centro */
+.welcome {
+    width: 420px;
+    max-width: 90%;
+}
 
-    /* Botão Click */
-    .click-btn {
-        width: 40%;
-        max-width: 180px;
-        cursor: pointer;
-        transition: transform 0.2s ease;
-    }
+/* Espaço entre welcome e botão */
+.spacer-bottom {
+    flex: 1;
+}
 
-    .click-btn:hover {
-        transform: scale(1.08);
-    }
+/* Botão embaixo */
+.click-btn {
+    width: 240px;
+    margin-bottom: 80px;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.click-btn:active {
+    transform: scale(0.95);
+}
 </style>
 </head>
 
@@ -60,8 +64,12 @@
     <!-- Logo -->
     <img src="logo.png" class="logo" alt="R-NET">
 
+    <div class="spacer-top"></div>
+
     <!-- Welcome -->
     <img src="icon1.png" class="welcome" alt="Welcome">
+
+    <div class="spacer-bottom"></div>
 
     <!-- Botão -->
     <img src="icon2.png" class="click-btn" alt="Click Here" onclick="entrar()">
