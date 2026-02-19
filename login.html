@@ -3,49 +3,75 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>R-NET</title>
+<title>R-NET - Login</title>
 
 <style>
 body {
     margin: 0;
-    background-color: #f2f2f2;
     font-family: Arial, sans-serif;
-}
-
-.container {
-    height: 100vh;
+    background-color: #e9e9e9;
     display: flex;
-    flex-direction: column;
+    justify-content: center;
     align-items: center;
+    height: 100vh;
 }
 
-/* Logo */
+/* Caixa central */
+.container {
+    text-align: center;
+    width: 90%;
+    max-width: 400px;
+}
+
+/* Logo menor */
 .logo {
-    width: 220px;
-    margin-top: 60px;
+    width: 180px;
+    margin-bottom: 40px;
 }
 
-.spacer-top {
-    flex: 1;
+/* Texto bonito */
+.titulo {
+    font-size: 28px;
+    color: white;
+    -webkit-text-stroke: 2px #ff2f7a;
+    text-shadow: 0 4px 10px rgba(255, 47, 122, 0.3);
+    font-weight: bold;
+    margin-bottom: 30px;
 }
 
-.welcome {
-    width: 320px;
+/* Campo nome */
+input {
+    width: 100%;
+    padding: 15px;
+    border-radius: 30px;
+    border: none;
+    font-size: 16px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    outline: none;
+    text-align: center;
 }
 
-.spacer-bottom {
-    flex: 1;
+input:focus {
+    box-shadow: 0 0 12px rgba(255, 47, 122, 0.4);
 }
 
-.click-btn {
-    width: 200px;
-    margin-bottom: 80px;
+/* Botão continuar */
+button {
+    width: 100%;
+    padding: 15px;
+    border-radius: 30px;
+    border: none;
+    background-color: #ff2f7a;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
     cursor: pointer;
     transition: 0.2s;
 }
 
-.click-btn:active {
-    transform: scale(0.95);
+button:hover {
+    transform: scale(1.03);
 }
 </style>
 </head>
@@ -55,19 +81,40 @@ body {
 <div class="container">
 
     <img src="logo.png" class="logo">
-    <div class="spacer-top"></div>
 
-    <img src="icon1.png" class="welcome">
-    <div class="spacer-bottom"></div>
+    <div class="titulo">
+        qual seu nome?<br>(no rpop)
+    </div>
 
-    <!-- Vai para o login -->
-    <img src="icon2.png" class="click-btn" onclick="entrar()">
+    <input type="text" id="nome" placeholder="Digite seu nome no RPOP">
+
+    <button onclick="criarConta()">Continuar</button>
 
 </div>
 
 <script>
-function entrar() {
-    window.location.href = "index.html";
+function criarConta() {
+
+    let nome = document.getElementById("nome").value.trim();
+
+    if (nome === "") {
+        alert("Digite seu nome!");
+        return;
+    }
+
+    // Criar ID único (mesmo se tiver várias pessoas com o mesmo nome)
+    let idUnico = "user_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+
+    let usuario = {
+        id: idUnico,
+        nome: nome
+    };
+
+    // Salvar no navegador
+    localStorage.setItem("usuarioRnet", JSON.stringify(usuario));
+
+    // Ir para home futuramente
+    window.location.href = "home.html";
 }
 </script>
 
