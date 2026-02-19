@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>R-NET Home</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: Arial, Helvetica, sans-serif;
+        background: url('background.png') no-repeat center top;
+        background-size: cover;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-height: 100vh;
+        color: #ff4ca3;
+    }
+
+    /* Logo */
+    .logo {
+        width: 200px;
+        margin-top: 40px;
+    }
+
+    /* Top Icons */
+    .top-icons {
+        width: 90%;
+        display: flex;
+        justify-content: space-between;
+        margin-top: 20px;
+    }
+
+    .top-icons img {
+        width: 40px;
+        height: 40px;
+        cursor: pointer;
+    }
+
+    /* Bem-vindo */
+    .welcome {
+        margin-top: 30px;
+        font-size: 24px;
+        font-weight: bold;
+        text-align: center;
+        text-shadow: 2px 2px 4px #ffffff;
+    }
+
+    /* Menu com ícones */
+    .menu-buttons {
+        margin-top: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        width: 90%;
+    }
+
+    .menu-buttons button {
+        background-color: #ff4ca3;
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 12px;
+        font-size: 18px;
+        font-weight: bold;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transition: transform 0.2s ease;
+    }
+
+    .menu-buttons button img {
+        width: 30px;
+        height: 30px;
+    }
+
+    .menu-buttons button:active { transform: scale(0.95); }
+
+    /* Top 1 This Week */
+    .top1 {
+        margin-top: 25px;
+        width: 90%;
+        height: 180px;
+        background-color: black;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+
+    .top1 span {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        background-color: #ff4ca3;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 8px;
+        font-weight: bold;
+        font-size: 14px;
+    }
+
+    .top1 img {
+        max-width: 100%;
+        max-height: 100%;
+        border-radius: 16px;
+    }
+</style>
+</head>
+<body>
+
+    <!-- Logo -->
+    <img src="logo.png" alt="R-NET Logo" class="logo">
+
+    <!-- Top Icons -->
+    <div class="top-icons">
+        <img src="icon5.png" alt="Profile">
+        <img src="icon4.png" alt="Label">
+    </div>
+
+    <!-- Bem-vindo -->
+    <div class="welcome">Bem-vindo, User!</div>
+
+    <!-- Menu Buttons com ícones -->
+    <div class="menu-buttons">
+        <button><img src="icon6.png" alt="MV Zone">MV Zone</button>
+        <button><img src="icon7.png" alt="Weekly Charts">Weekly Charts</button>
+        <button><img src="icon9.png" alt="News!">News!</button>
+        <button><img src="icon8.png" alt="Groups">Groups</button>
+    </div>
+
+    <!-- Top 1 This Week -->
+    <div class="top1">
+        <span>Top 1 This Week</span>
+        <img src="black.png" alt="Foto do grupo Top 1">
+    </div>
+
+</body>
+</html>
