@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>R-NET - Escolha</title>
+
+<style>
+body {
+    margin: 0;
+    background-color: #f2f2f2;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Container central */
+.container {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Logo */
+.logo {
+    width: 240px;
+    margin-top: 60px;
+}
+
+/* Espaçamentos */
+.spacer-top {
+    flex: 1;
+}
+
+.spacer-bottom {
+    flex: 1;
+}
+
+/* Texto principal estilo R-NET */
+.pergunta {
+    text-align: center;
+    font-size: 30px;
+    color: white;
+    -webkit-text-stroke: 2px #ff2f7d;
+    text-shadow:
+        0 0 6px rgba(255,47,125,0.5),
+        0 0 12px rgba(255,47,125,0.3);
+    padding: 0 25px;
+    margin-bottom: 50px;
+}
+
+/* Botões estilo Frutiger Aero */
+.opcao {
+    width: 80%;
+    max-width: 360px;
+    padding: 18px;
+    margin: 12px;
+    border: none;
+    border-radius: 50px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    color: white;
+
+    /* Gradiente glossy */
+    background: linear-gradient(
+        to bottom,
+        #ff78b3 0%,
+        #ff4f94 40%,
+        #ff2f7d 100%
+    );
+
+    /* Brilho */
+    box-shadow:
+        inset 0 4px 8px rgba(255,255,255,0.4),
+        0 8px 18px rgba(0,0,0,0.15);
+
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.opcao:hover {
+    transform: scale(1.05);
+}
+
+.opcao:active {
+    transform: scale(0.96);
+    box-shadow:
+        inset 0 2px 6px rgba(0,0,0,0.2);
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- Logo -->
+    <img src="logo.png" class="logo">
+
+    <div class="spacer-top"></div>
+
+    <!-- Pergunta -->
+    <div class="pergunta">
+        está como visitante ou gostaria de cadastrar um grupo (apenas empresas)?
+    </div>
+
+    <!-- Opções -->
+    <button class="opcao" onclick="visitante()">
+        Não, continuar como visitante
+    </button>
+
+    <button class="opcao" onclick="empresa()">
+        Sim, sou empresa
+    </button>
+
+    <div class="spacer-bottom"></div>
+
+</div>
+
+<script>
+function visitante() {
+    window.location.href = "home.html";
+}
+
+function empresa() {
+    window.location.href = "empresa.html";
+}
+</script>
+
+</body>
+</html>
