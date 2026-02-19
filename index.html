@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>R-NET</title>
+
+<style>
+    /* Fundo da página */
+    body {
+        margin: 0;
+        background-color: #f2f2f2;
+        font-family: Arial, Helvetica, sans-serif;
+
+        /* Centralização total */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+    }
+
+    /* Área principal */
+    .container {
+        text-align: center;
+        width: 90%;
+        max-width: 500px;
+    }
+
+    /* Logo R-NET */
+    .logo {
+        width: 45%;
+        max-width: 220px;
+        margin-bottom: 50px;
+    }
+
+    /* Welcome */
+    .welcome {
+        width: 90%;
+        max-width: 380px;
+        margin-bottom: 50px;
+    }
+
+    /* Botão Click */
+    .click-btn {
+        width: 40%;
+        max-width: 180px;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+    }
+
+    .click-btn:hover {
+        transform: scale(1.08);
+    }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- Logo -->
+    <img src="logo.png" class="logo" alt="R-NET">
+
+    <!-- Welcome -->
+    <img src="welcome.png" class="welcome" alt="Welcome">
+
+    <!-- Botão -->
+    <img src="click.png" class="click-btn" alt="Click Here" onclick="entrar()">
+
+</div>
+
+<script>
+function entrar() {
+    window.location.href = "home.html";
+}
+</script>
+
+</body>
+</html>
