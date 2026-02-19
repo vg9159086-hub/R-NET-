@@ -6,44 +6,50 @@
 <title>R-NET</title>
 
 <style>
-/* Fundo */
+/* Fundo geral */
 body {
     margin: 0;
     background-color: #f2f2f2;
     font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Área principal */
-.container {
+/* Telas */
+.screen {
     height: 100vh;
     display: flex;
     flex-direction: column;
     align-items: center;
 }
 
-/* Logo no topo */
-.logo {
-    width: 300px;
-    margin-top: 60px;
+/* Esconder tela */
+.hidden {
+    display: none;
 }
 
-/* Espaço grande até o meio */
-.spacer-top {
+/* Logo entrada */
+.logo-big {
+    width: 280px;
+    margin-top: 70px;
+}
+
+/* Logo menor (segunda tela) */
+.logo-medium {
+    width: 180px;
+    margin-top: 50px;
+}
+
+/* Espaçadores */
+.spacer {
     flex: 1;
 }
 
-/* Welcome no centro */
+/* Welcome */
 .welcome {
     width: 420px;
     max-width: 90%;
 }
 
-/* Espaço entre welcome e botão */
-.spacer-bottom {
-    flex: 1;
-}
-
-/* Botão embaixo */
+/* Botão Click */
 .click-btn {
     width: 240px;
     margin-bottom: 80px;
@@ -54,31 +60,95 @@ body {
 .click-btn:active {
     transform: scale(0.95);
 }
+
+/* ===== Tela Nome ===== */
+
+.name-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Texto bonito com contorno rosa */
+.titulo {
+    font-size: 38px;
+    text-align: center;
+    color: #ffffff;
+    -webkit-text-stroke: 2px #ff2f7a;
+    text-shadow: 0 4px 10px rgba(255, 47, 122, 0.3);
+    font-weight: bold;
+    margin-bottom: 40px;
+}
+
+/* Caixa de nome */
+.nome-box {
+    width: 420px;
+    max-width: 90%;
+}
+
+.nome-box input {
+    width: 100%;
+    padding: 18px;
+    border-radius: 40px;
+    border: 1px solid #ccc;
+    font-size: 18px;
+    text-align: center;
+    outline: none;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.nome-box input:focus {
+    border: 2px solid #ff2f7a;
+    box-shadow: 0 0 12px rgba(255, 47, 122, 0.4);
+}
 </style>
 </head>
 
 <body>
 
-<div class="container">
+<!-- ===== TELA 1: ENTRADA ===== -->
+<div id="entrada" class="screen">
 
-    <!-- Logo -->
-    <img src="logo.png" class="logo" alt="R-NET">
+    <img src="logo.png" class="logo-big" alt="R-NET">
 
-    <div class="spacer-top"></div>
+    <div class="spacer"></div>
 
-    <!-- Welcome -->
     <img src="icon1.png" class="welcome" alt="Welcome">
 
-    <div class="spacer-bottom"></div>
+    <div class="spacer"></div>
 
-    <!-- Botão -->
-    <img src="icon2.png" class="click-btn" alt="Click Here" onclick="entrar()">
+    <img src="icon2.png" class="click-btn" alt="Click Here" onclick="mostrarNome()">
 
 </div>
 
+
+<!-- ===== TELA 2: NOME ===== -->
+<div id="nomeScreen" class="screen hidden">
+
+    <img src="logo.png" class="logo-medium" alt="R-NET">
+
+    <div class="name-container">
+
+        <div class="titulo">
+            qual seu nome?<br>
+            (no rpop)
+        </div>
+
+        <div class="nome-box">
+            <input type="text" id="nome" placeholder="Digite seu nome no RPOP">
+        </div>
+
+    </div>
+
+</div>
+
+
 <script>
-function entrar() {
-    window.location.href = "index.html2";
+function mostrarNome() {
+    document.getElementById("entrada").classList.add("hidden");
+    document.getElementById("nomeScreen").classList.remove("hidden");
 }
 </script>
 
