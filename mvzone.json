@@ -1,0 +1,59 @@
+{
+  "mvs": [
+    {
+      "id": "mv_1",
+      "nome": "Artista A",
+      "empresa": "RNET",
+      "url": "https://youtu.be/hUJNcB8_Oc0",
+      "pontos": 0,
+      "likes": [],
+      "dislikes": [],
+      "comentarios": [],
+      "data": 1677000000000
+    },
+    {
+      "id": "mv_2",
+      "nome": "Artista B",
+      "empresa": "RNET",
+      "url": "https://youtu.be/dQw4w9WgXcQ",
+      "pontos": 0,
+      "likes": [],
+      "dislikes": [],
+      "comentarios": [],
+      "data": 1677000000000
+    },
+    {
+      "id": "mv_3",
+      "nome": "Artista C",
+      "empresa": "RNET",
+      "url": "https://youtu.be/3JZ_D3ELwOQ",
+      "pontos": 0,
+      "likes": [],
+      "dislikes": [],
+      "comentarios": [],
+      "data": 1677000000000
+    },
+    {
+      "id": "mv_4",
+      "nome": "Artista D",
+      "empresa": "RNET",
+      "url": "https://youtu.be/L_jWHffIx5E",
+      "pontos": 0,
+      "likes": [],
+      "dislikes": [],
+      "comentarios": [],
+      "data": 1677000000000
+    },
+    {
+      "id": "mv_5",
+      "nome": "Artista E",
+      "empresa": "RNET",
+      "url": "https://youtu.be/fJ9rUzIMcZQ",
+      "pontos": 0,
+      "likes": [],
+      "dislikes": [],
+      "comentarios": [],
+      "data": 1677000000000
+    }
+  ]
+}
