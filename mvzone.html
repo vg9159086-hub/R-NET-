@@ -3,91 +3,325 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>R-NET - MV Zone</title>
+<title>MV Zone</title>
 
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-
-body {
-    font-family: Arial, sans-serif;
-    background: url('backgound1.png') no-repeat center top;
-    background-size: cover;
-    min-height: 100vh;
-    padding: 20px;
-    color: #ff4ca3;
+body{
+    font-family: Arial;
+    background:#fff0f6;
+    padding:15px;
 }
 
-h2 {
-    text-align: center;
-    font-size: 26px;
-    margin-bottom: 20px;
+/* Cards */
+.mv-card{
+    background:white;
+    border-radius:15px;
+    padding:15px;
+    margin-bottom:20px;
+    box-shadow:0 5px 10px rgba(0,0,0,0.1);
 }
 
-.mv-card {
-    background: white;
-    border-radius: 20px;
-    box-shadow: 0 6px 15px rgba(0,0,0,0.15);
-    margin-bottom: 20px;
-    padding: 15px;
-    width: 90%;
-    max-width: 400px;
-    margin: auto;
+iframe{
+    width:100%;
+    height:200px;
+    border-radius:10px;
 }
 
-.mv-card iframe {
-    width: 100%;
-    height: 200px;
-    border-radius: 16px;
+.vote-area{
+    display:flex;
+    justify-content:center;
+    gap:40px;
+    margin-top:10px;
 }
 
-.mv-info {
-    margin-top: 12px;
-    line-height: 1.4;
-    font-size: 16px;
+.vote-btn{
+    text-align:center;
+    cursor:pointer;
 }
 
-.watch-btn {
-    margin-top: 15px;
-    width: 100%;
-    padding: 12px;
-    background-color: #ff4ca3;
-    color: white;
-    border: none;
-    border-radius: 30px;
-    font-size: 18px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: transform 0.2s;
+.vote-btn img{
+    width:35px;
 }
 
-.watch-btn:hover {
-    transform: scale(1.05);
+/* Comentários */
+.comment-box{
+    margin-top:10px;
+}
+
+.comment-box input{
+    width:75%;
+    padding:6px;
+    border-radius:8px;
+    border:1px solid #ccc;
+}
+
+.comment-box button{
+    padding:6px 10px;
+    border:none;
+    background:hotpink;
+    color:white;
+    border-radius:8px;
+}
+
+.comment{
+    background:#f9f9f9;
+    padding:6px;
+    border-radius:6px;
+    margin-top:5px;
+    font-size:13px;
+}
+
+/* Ranking medalha */
+.medal{
+    font-size:20px;
+    color:gold;
+}
+
+/* Tela Winner */
+.winner-screen{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.85);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    z-index:999;
+}
+
+.winner-box{
+    background:white;
+    padding:20px;
+    border-radius:20px;
+    text-align:center;
+    width:90%;
+    max-width:350px;
+}
+
+.trophy{
+    font-size:60px;
+    animation:trofeuAnim 1s infinite alternate;
+}
+
+@keyframes trofeuAnim{
+    from{transform:scale(1);}
+    to{transform:scale(1.2);}
 }
 </style>
 </head>
-
 <body>
 
-<h2>MV Zone</h2>
+<h1>MV Zone</h1>
 
-<div class="mv-card">
+<div id="destaque"></div>
+<h2>Lista de MVs</h2>
+<div id="lista"></div>
 
-    <!-- Embed do vídeo -->
-    <iframe src="https://www.youtube.com/embed/hUJNcB8_Oc0?si=iCsqnzvgNKF4i5_C" 
-            frameborder="0" allowfullscreen></iframe>
+<h2>🏆 Ranking AO VIVO</h2>
+<div id="ranking"></div>
 
-    <div class="mv-info">
-        <strong>Nome do MV:</strong> Test MV <br>
-        <strong>Grupo:</strong> Test Group <br>
-        <strong>Empresa:</strong> Test Company <br>
-        <strong>CEO:</strong> Test CEO
+<!-- Tela Winner -->
+<div id="winnerScreen" class="winner-screen" style="display:none;">
+    <div class="winner-box">
+        <h2>🏆 WINNER OF THE WEEK</h2>
+        <h1 id="winnerName"></h1>
+        <div class="trophy">🏆</div>
+        <iframe id="winnerVideo" style="width:100%;height:180px;"></iframe>
+        <button onclick="fecharWinner()">Continuar</button>
     </div>
-
-    <button class="watch-btn" onclick="window.open('https://youtu.be/hUJNcB8_Oc0?si=iCsqnzvgNKF4i5_C','_blank')">
-        Assistir no YouTube
-    </button>
-
 </div>
 
+<script>
+
+// ===== USER =====
+if(!localStorage.getItem("rnetUser")){
+    localStorage.setItem("rnetUser","user"+Math.floor(Math.random()*100000));
+}
+let userId = localStorage.getItem("rnetUser");
+
+// ===== MVs =====
+let mvs = JSON.parse(localStorage.getItem("mvs"));
+
+if(!mvs){
+mvs=[{
+id:"1",
+grupo:"TEST GROUP",
+url:"https://youtu.be/hUJNcB8_Oc0",
+likes:0,
+dislikes:0,
+users:{},
+comments:[],
+createdAt:Date.now()
+}];
+localStorage.setItem("mvs",JSON.stringify(mvs));
+}
+
+// ===== VOTO =====
+function votar(index,tipo){
+let mv=mvs[index];
+
+if(mv.users[userId]===tipo){
+if(tipo=="like") mv.likes-=5;
+if(tipo=="dislike") mv.dislikes-=1;
+delete mv.users[userId];
+}else{
+if(mv.users[userId]=="like") mv.likes-=5;
+if(mv.users[userId]=="dislike") mv.dislikes-=1;
+
+if(tipo=="like") mv.likes+=5;
+if(tipo=="dislike") mv.dislikes+=1;
+
+mv.users[userId]=tipo;
+}
+
+salvar();
+render();
+}
+
+// ===== COMENTÁRIOS =====
+function comentar(index){
+let input=document.getElementById("commentInput"+index);
+let texto=input.value.trim();
+if(texto=="") return;
+
+mvs[index].comments.push({
+user:userId,
+text:texto,
+time:new Date().toLocaleString()
+});
+
+input.value="";
+salvar();
+render();
+}
+
+function deletarComentario(mvIndex,commentIndex){
+let c=mvs[mvIndex].comments[commentIndex];
+if(c.user!==userId) return;
+
+mvs[mvIndex].comments.splice(commentIndex,1);
+salvar();
+render();
+}
+
+// ===== SALVAR =====
+function salvar(){
+localStorage.setItem("mvs",JSON.stringify(mvs));
+}
+
+// ===== RENDER =====
+function render(){
+
+mvs = JSON.parse(localStorage.getItem("mvs")) || [];
+
+let lista=document.getElementById("lista");
+lista.innerHTML="";
+
+mvs.forEach((mv,i)=>{
+
+let vid = mv.url.split("youtu.be/")[1];
+
+let comentariosHTML = mv.comments.map((c,ci)=>`
+<div class="comment">
+<b>${c.user}</b> (${c.time})<br>
+${c.text}
+${c.user===userId ? `<br><button onclick="deletarComentario(${i},${ci})">Apagar</button>`:""}
+</div>
+`).join("");
+
+lista.innerHTML+=`
+<div class="mv-card">
+<h3>${mv.grupo}</h3>
+
+<iframe src="https://www.youtube.com/embed/${vid}" allowfullscreen></iframe>
+
+<div class="vote-area">
+<div class="vote-btn" onclick="votar(${i},'like')">
+<img src="like.png"><div>${mv.likes}</div>
+</div>
+
+<div class="vote-btn" onclick="votar(${i},'dislike')">
+<img src="deslike.png"><div>${mv.dislikes}</div>
+</div>
+</div>
+
+<p>Pontos: ${mv.likes-mv.dislikes}</p>
+
+<div class="comment-box">
+<input id="commentInput${i}" placeholder="Comentar...">
+<button onclick="comentar(${i})">Enviar</button>
+</div>
+
+<div>${comentariosHTML}</div>
+
+</div>
+`;
+});
+
+gerarRanking();
+}
+
+// ===== RANKING AO VIVO =====
+function gerarRanking(){
+
+let ranking = mvs.map(mv=>{
+return{
+grupo:mv.grupo,
+score:mv.likes-mv.dislikes,
+url:mv.url
+};
+});
+
+ranking.sort((a,b)=>b.score-a.score);
+
+document.getElementById("ranking").innerHTML=
+ranking.map((mv,i)=>`
+<p>
+${i==0?"🥇":i==1?"🥈":i==2?"🥉":(i+1)+"º"}
+ - ${mv.grupo} (${mv.score})
+</p>
+`).join("");
+
+// Destaque
+if(ranking.length>0){
+let top=ranking[0];
+let vid=top.url.split("youtu.be/")[1];
+
+document.getElementById("destaque").innerHTML=`
+<div class="mv-card">
+<h3 class="medal">🏆 ${top.grupo}</h3>
+<iframe src="https://www.youtube.com/embed/${vid}"></iframe>
+<p>${top.score} pontos</p>
+</div>
+`;
+}
+}
+
+// ===== RANKING AO VIVO AUTOMÁTICO =====
+setInterval(()=>{
+render();
+},3000);
+
+
+// ===== WINNER SCREEN (se existir) =====
+let lastWinner = JSON.parse(localStorage.getItem("lastWinner"));
+if(lastWinner){
+let vid = lastWinner.url.split("youtu.be/")[1];
+document.getElementById("winnerName").innerText=lastWinner.grupo;
+document.getElementById("winnerVideo").src="https://www.youtube.com/embed/"+vid;
+document.getElementById("winnerScreen").style.display="flex";
+localStorage.removeItem("lastWinner");
+}
+
+function fecharWinner(){
+document.getElementById("winnerScreen").style.display="none";
+}
+
+// START
+render();
+
+</script>
 </body>
 </html>
