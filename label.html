@@ -1,250 +1,265 @@
 <!DOCTYPE html><html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Minha Label</title><style>
+<title>Label - R-Net</title><style>
 body{
     margin:0;
-    font-family: Arial, Helvetica, sans-serif;
-    background-image:url("background.png");
-    background-size:cover;
-    background-position:center;
+    font-family: Arial;
+    background:#f4f4f4;
 }
 
-/* HEADER */
 header{
     background:#ff4da6;
     color:white;
-    text-align:center;
     padding:15px;
+    text-align:center;
     font-size:20px;
     font-weight:bold;
-    box-shadow:0 3px 10px rgba(255,77,166,0.4);
 }
 
-/* CARD */
+.container{
+    padding:15px;
+}
+
 .card{
     background:white;
-    margin:15px;
     padding:15px;
-    border-radius:15px;
-    box-shadow:0 5px 15px rgba(255,77,166,0.2);
+    margin-bottom:15px;
+    border-radius:10px;
+    box-shadow:0 2px 5px rgba(0,0,0,0.1);
 }
 
-/* TITLES */
-.section-title{
-    color:#ff4da6;
-    font-weight:bold;
-    margin-bottom:10px;
-}
-
-/* INPUT */
 input{
     width:100%;
-    padding:10px;
-    margin-top:8px;
-    border-radius:8px;
-    border:1px solid #ffcce6;
+    padding:8px;
+    margin-top:5px;
+    margin-bottom:10px;
+    border-radius:6px;
+    border:1px solid #ccc;
 }
 
-/* BUTTON */
 button{
-    width:100%;
-    padding:10px;
-    margin-top:10px;
-    background:#ff4da6;
-    color:white;
+    padding:8px 12px;
+    margin:5px 3px;
     border:none;
-    border-radius:10px;
-    font-weight:bold;
+    border-radius:6px;
     cursor:pointer;
 }
 
-button:active{
-    transform:scale(0.98);
+.btn-main{
+    background:#ff4da6;
+    color:white;
 }
 
-/* ITEM */
-.item{
-    border-bottom:1px solid #ffe6f2;
-    padding:10px 0;
+.btn-cancel{
+    background:#999;
+    color:white;
 }
 
-.item:last-child{
-    border-bottom:none;
+.artist{
+    border-top:1px solid #eee;
+    padding-top:10px;
+    margin-top:10px;
 }
 
-.item img{
+.artist img{
     width:100%;
     max-height:150px;
     object-fit:cover;
-    border-radius:10px;
-    margin-bottom:5px;
-}
-
-.small-btn{
-    background:#ff85c2;
-    margin-top:5px;
+    border-radius:8px;
 }
 </style></head>
-<body><header>Minha Label</header><div class="card" id="empresaInfo"></div><!-- FORM GRUPO --><div class="card">
-<div class="section-title">Adicionar Grupo</div>
-<input id="g_nome" placeholder="Nome do grupo">
-<input id="g_integrantes" placeholder="Integrantes">
-<input id="g_conceito" placeholder="Conceito">
-<input id="g_debut" placeholder="Data de debut">
-<input id="g_fandom" placeholder="Fandom">
-<input id="g_cor" placeholder="Cor do fandom">
-<input id="g_foto" placeholder="Link da foto">
-<button onclick="addGrupo()">Adicionar Grupo</button>
-</div><!-- LISTA GRUPOS --><div class="card">
-<div class="section-title">Grupos</div>
-<div id="listaGrupos"></div>
-</div><!-- FORM SOLISTA --><div class="card">
-<div class="section-title">Adicionar Solista</div>
-<input id="s_nome" placeholder="Nome do solista">
-<input id="s_conceito" placeholder="Conceito">
-<input id="s_debut" placeholder="Data de debut">
-<input id="s_fandom" placeholder="Fandom">
-<input id="s_cor" placeholder="Cor do fandom">
-<input id="s_foto" placeholder="Link da foto">
-<button onclick="addSolista()">Adicionar Solista</button>
-</div><!-- LISTA SOLISTAS --><div class="card">
-<div class="section-title">Solistas</div>
-<div id="listaSolistas"></div>
+<body><header>Label Panel</header><div class="container"><div class="card">
+    <h3 id="empresaInfo"></h3>
+</div>
+
+<!-- Adicionar Grupo -->
+<div class="card">
+    <h3>Novo Grupo</h3>
+    <input type="text" id="grupoNome" placeholder="Nome do grupo">
+    <input type="text" id="grupoIntegrantes" placeholder="Integrantes">
+    <input type="text" id="grupoConceito" placeholder="Conceito">
+    <input type="date" id="grupoDebut">
+    <input type="text" id="grupoFandom" placeholder="Fandom">
+    <input type="color" id="grupoCor">
+    <input type="file" id="grupoFoto" accept="image/*">
+
+    <button class="btn-main" onclick="salvarGrupo()">Salvar Grupo</button>
+    <button class="btn-cancel" onclick="limparGrupo()">Cancelar</button>
+</div>
+
+<!-- Adicionar Solista -->
+<div class="card">
+    <h3>Novo Solista</h3>
+    <input type="text" id="soloNome" placeholder="Nome do solista">
+    <input type="text" id="soloConceito" placeholder="Conceito">
+    <input type="date" id="soloDebut">
+    <input type="text" id="soloFandom" placeholder="Fandom">
+    <input type="color" id="soloCor">
+    <input type="file" id="soloFoto" accept="image/*">
+
+    <button class="btn-main" onclick="salvarSolo()">Salvar Solista</button>
+    <button class="btn-cancel" onclick="limparSolo()">Cancelar</button>
+</div>
+
+<!-- Lista -->
+<div class="card">
+    <h3>Artistas da empresa</h3>
+    <div id="listaArtistas"></div>
+</div>
+
 </div><script>
 
+// ===== Empresa =====
 let empresa = JSON.parse(localStorage.getItem("empresaAtual"));
 
-if(!empresa){
-    empresa = {
-        nomeEmpresa:"Minha Empresa",
-        ceo:"CEO",
-        grupos:[],
-        solistas:[]
-    };
+if(empresa){
+    document.getElementById("empresaInfo").innerText =
+    empresa.nomeEmpresa + " | CEO: " + empresa.ceo;
+}else{
+    document.getElementById("empresaInfo").innerText =
+    "Empresa não encontrada";
 }
 
-if(!empresa.grupos) empresa.grupos=[];
-if(!empresa.solistas) empresa.solistas=[];
+// ===== Banco =====
+let artistas = JSON.parse(localStorage.getItem("artistas")) || [];
+let mvs = JSON.parse(localStorage.getItem("mvs")) || [];
 
-document.getElementById("empresaInfo").innerHTML = `
-<div class="section-title">Empresa</div>
-<b>${empresa.nomeEmpresa}</b><br>
-CEO: ${empresa.ceo}
-`;
-
-function salvar(){
-    localStorage.setItem("empresaAtual", JSON.stringify(empresa));
+// ===== Upload imagem =====
+function lerImagem(input, callback){
+    if(input.files && input.files[0]){
+        let reader = new FileReader();
+        reader.onload = e => callback(e.target.result);
+        reader.readAsDataURL(input.files[0]);
+    }else{
+        callback("");
+    }
 }
 
-/* ======================
-   GRUPO
-====================== */
-function addGrupo(){
-    let grupo = {
-        id:Date.now(),
-        nome:g_nome.value,
-        integrantes:g_integrantes.value,
-        conceito:g_conceito.value,
-        debut:g_debut.value,
-        fandom:g_fandom.value,
-        cor:g_cor.value,
-        foto:g_foto.value
-    };
+// ===== Grupo =====
+function salvarGrupo(){
+    lerImagem(document.getElementById("grupoFoto"), function(img){
 
-    empresa.grupos.push(grupo);
-    salvar();
-    atualizarGrupos();
-    limparGrupo();
+        let grupo = {
+            id: Date.now(),
+            tipo: "grupo",
+            empresa: empresa.nomeEmpresa,
+            nome: document.getElementById("grupoNome").value,
+            integrantes: document.getElementById("grupoIntegrantes").value,
+            conceito: document.getElementById("grupoConceito").value,
+            debut: document.getElementById("grupoDebut").value,
+            fandom: document.getElementById("grupoFandom").value,
+            cor: document.getElementById("grupoCor").value,
+            foto: img
+        };
+
+        artistas.push(grupo);
+        localStorage.setItem("artistas", JSON.stringify(artistas));
+        limparGrupo();
+        renderArtistas();
+    });
 }
 
 function limparGrupo(){
-    g_nome.value="";
-    g_integrantes.value="";
-    g_conceito.value="";
-    g_debut.value="";
-    g_fandom.value="";
-    g_cor.value="";
-    g_foto.value="";
+    document.querySelectorAll("#grupoNome,#grupoIntegrantes,#grupoConceito,#grupoDebut,#grupoFandom").forEach(i=>i.value="");
+    document.getElementById("grupoFoto").value="";
 }
 
-function atualizarGrupos(){
-    listaGrupos.innerHTML="";
-    empresa.grupos.forEach(g=>{
-        listaGrupos.innerHTML+=`
-        <div class="item">
-            <img src="${g.foto || 'https://via.placeholder.com/300x150'}">
-            <b>${g.nome}</b><br>
-            ${g.integrantes}<br>
-            ${g.conceito}<br>
-            ${g.debut}<br>
-            ${g.fandom} (${g.cor})
-            <button class="small-btn" onclick="deleteGrupo(${g.id})">Excluir</button>
-        </div>
-        `;
+// ===== Solo =====
+function salvarSolo(){
+    lerImagem(document.getElementById("soloFoto"), function(img){
+
+        let solo = {
+            id: Date.now(),
+            tipo: "solo",
+            empresa: empresa.nomeEmpresa,
+            nome: document.getElementById("soloNome").value,
+            conceito: document.getElementById("soloConceito").value,
+            debut: document.getElementById("soloDebut").value,
+            fandom: document.getElementById("soloFandom").value,
+            cor: document.getElementById("soloCor").value,
+            foto: img
+        };
+
+        artistas.push(solo);
+        localStorage.setItem("artistas", JSON.stringify(artistas));
+        limparSolo();
+        renderArtistas();
     });
 }
 
-function deleteGrupo(id){
-    empresa.grupos = empresa.grupos.filter(g=>g.id!==id);
-    salvar();
-    atualizarGrupos();
+function limparSolo(){
+    document.querySelectorAll("#soloNome,#soloConceito,#soloDebut,#soloFandom").forEach(i=>i.value="");
+    document.getElementById("soloFoto").value="";
 }
 
-/* ======================
-   SOLISTA
-====================== */
-function addSolista(){
-    let solista = {
-        id:Date.now(),
-        nome:s_nome.value,
-        conceito:s_conceito.value,
-        debut:s_debut.value,
-        fandom:s_fandom.value,
-        cor:s_cor.value,
-        foto:s_foto.value
+// ===== Semana =====
+function semanaAtual(){
+    let now = new Date();
+    let onejan = new Date(now.getFullYear(),0,1);
+    return Math.ceil((((now - onejan)/86400000)+onejan.getDay()+1)/7);
+}
+
+// ===== Adicionar MV =====
+function adicionarMV(artistaId){
+    let link = prompt("Cole o link do YouTube");
+
+    if(!link) return;
+
+    let artista = artistas.find(a=>a.id==artistaId);
+    let semana = new Date().getFullYear()+"-"+semanaAtual();
+
+    let jaExiste = mvs.find(m =>
+        m.artistaId == artistaId &&
+        m.semana == semana
+    );
+
+    if(jaExiste){
+        alert("Esse artista já lançou um MV essa semana!");
+        return;
+    }
+
+    let mv = {
+        id: Date.now(),
+        artistaId: artistaId,
+        grupo: artista.nome,
+        empresa: artista.empresa,
+        link: link,
+        semana: semana,
+        likes: 0,
+        dislikes: 0,
+        comentarios: []
     };
 
-    empresa.solistas.push(solista);
-    salvar();
-    atualizarSolistas();
-    limparSolista();
+    mvs.push(mv);
+    localStorage.setItem("mvs", JSON.stringify(mvs));
+
+    alert("MV publicado! Já está no MV Zone!");
 }
 
-function limparSolista(){
-    s_nome.value="";
-    s_conceito.value="";
-    s_debut.value="";
-    s_fandom.value="";
-    s_cor.value="";
-    s_foto.value="";
-}
+// ===== Render =====
+function renderArtistas(){
+    let div = document.getElementById("listaArtistas");
+    div.innerHTML = "";
 
-function atualizarSolistas(){
-    listaSolistas.innerHTML="";
-    empresa.solistas.forEach(s=>{
-        listaSolistas.innerHTML+=`
-        <div class="item">
-            <img src="${s.foto || 'https://via.placeholder.com/300x150'}">
-            <b>${s.nome}</b><br>
-            ${s.conceito}<br>
-            ${s.debut}<br>
-            ${s.fandom} (${s.cor})
-            <button class="small-btn" onclick="deleteSolista(${s.id})">Excluir</button>
+    artistas
+    .filter(a => a.empresa == empresa.nomeEmpresa)
+    .forEach(a=>{
+        div.innerHTML += `
+        <div class="artist">
+            <h4>${a.nome} (${a.tipo})</h4>
+            ${a.foto ? `<img src="${a.foto}">` : ""}
+            <p>Conceito: ${a.conceito}</p>
+            <p>Debut: ${a.debut}</p>
+            <button class="btn-main" onclick="adicionarMV(${a.id})">
+                Adicionar MV
+            </button>
         </div>
         `;
     });
 }
 
-function deleteSolista(id){
-    empresa.solistas = empresa.solistas.filter(s=>s.id!==id);
-    salvar();
-    atualizarSolistas();
-}
-
-atualizarGrupos();
-atualizarSolistas();
+renderArtistas();
 
 </script></body>
 </html>
