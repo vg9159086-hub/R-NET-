@@ -4,145 +4,161 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>R-NET Home</title>
+
 <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-        font-family: Arial, Helvetica, sans-serif;
-        background: url('backgound1.png') no-repeat center top;
-        background-size: cover;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        min-height: 100vh;
-        color: #ff4ca3;
-    }
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
-    /* Logo */
-    .logo {
-        width: 200px;
-        margin-top: 40px;
-    }
+body {
+    font-family: Arial, sans-serif;
+    background: url('background.png') no-repeat center top;
+    background-size: cover;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #ff4ca3;
+}
 
-    /* Top Icons */
-    .top-icons {
-        width: 90%;
-        display: flex;
-        justify-content: space-between;
-        margin-top: 20px;
-    }
+/* Logo */
+.logo {
+    width: 200px;
+    margin-top: 40px;
+}
 
-    .top-icons img {
-        width: 50px;
-        height: 50px;
-        cursor: pointer;
-    }
+/* Ícones topo */
+.top-icons {
+    width: 90%;
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
 
-    /* Bem-vindo */
-    .welcome {
-        margin-top: 30px;
-        font-size: 24px;
-        font-weight: bold;
-        text-align: center;
-        text-shadow: 2px 2px 4px #ffffff;
-    }
+.top-icons img {
+    width: 45px;
+    height: 45px;
+}
 
-    /* Menu Icons */
-    .menu-icons {
-        margin-top: 20px;
-        display: flex;
-        justify-content: space-around;
-        width: 90%;
-    }
+/* Bem-vindo */
+.welcome {
+    margin-top: 25px;
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    text-shadow: 2px 2px 4px #ffffff;
+}
 
-    .menu-icons img {
-        width: 60px;
-        height: 60px;
-        cursor: pointer;
-        transition: transform 0.2s ease;
-    }
+/* Ícones principais */
+.menu-icons {
+    margin-top: 30px;
+    width: 90%;
+    display: flex;
+    justify-content: space-around;
+}
 
-    .menu-icons img:active {
-        transform: scale(0.9);
-    }
+.menu-icons img {
+    width: 65px;
+    height: 65px;
+    transition: transform 0.2s ease;
+}
 
-    /* Top 1 This Week */
-    .top1 {
-        margin-top: 25px;
-        width: 90%;
-        height: 180px;
-        background-color: black;
-        border-radius: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-    }
+.menu-icons img:active {
+    transform: scale(0.9);
+}
 
-    .top1 span {
-        position: absolute;
-        top: 8px;
-        left: 8px;
-        background-color: #ff4ca3;
-        color: white;
-        padding: 4px 8px;
-        border-radius: 8px;
-        font-weight: bold;
-        font-size: 14px;
-    }
+/* Top 1 */
+.top1 {
+    margin-top: 35px;
+    width: 90%;
+    height: 200px;
+    background-color: black;
+    border-radius: 18px;
+    position: relative;
+}
 
-    .top1 img {
-        max-width: 100%;
-        max-height: 100%;
-        border-radius: 16px;
-    }
+.top1 span {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background-color: #ff4ca3;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 14px;
+}
 </style>
 </head>
+
 <body>
 
-    <!-- Logo -->
-    <img src="logo.png" alt="R-NET Logo" class="logo">
+<!-- Logo -->
+<img src="logo.png" class="logo" alt="R-NET Logo">
 
-    <!-- Top Icons -->
-    <div class="top-icons">
+<!-- Profile e Label -->
+<div class="top-icons">
+    <a href="profile.html">
         <img src="icon5.png" alt="Profile">
+    </a>
+
+    <a href="empresa.html">
         <img src="icon4.png" alt="Label">
-    </div>
+    </a>
+</div>
 
-    <!-- Bem-vindo -->
-    <div class="welcome" id="welcome-text">Bem-vindo, User!</div>
+<!-- Bem-vindo dinâmico -->
+<div class="welcome" id="welcome-text">
+    Bem-vindo, User!
+</div>
 
-    <!-- Menu Icons -->
-    <div class="menu-icons">
-    <img src="icon6.png" alt="MV Zone" onclick="window.location.href='mvzone.html';" style="cursor:pointer;">
+<!-- Menu principal -->
+<div class="menu-icons">
+
+    <a href="mvzone.html">
+        <img src="icon6.png" alt="MV Zone">
+    </a>
+
+    <a href="charts.html">
         <img src="icon7.png" alt="Weekly Charts">
-      <div onclick="window.location.href='charts.html';" style="cursor:pointer;">
-        <img src="icon9.png" alt="News!">
-      <div onclick="window.location.href='news.html';" style="cursor:pointer;">
-        <img src="icon8.png" alt="Groups">
-       <div onclick="window.location.href='groups.html';" style="cursor:pointer;">
-    </div>
+    </a>
 
-    <!-- Top 1 This Week -->
-    <div class="top1">
-        <span>Top 1 This Week</span>
-        <img src="black.png" alt="Foto do grupo Top 1">
-    </div>
+    <a href="news.html">
+        <img src="icon9.png" alt="News">
+    </a>
+
+    <a href="groups.html">
+        <img src="icon8.png" alt="Groups">
+    </a>
+
+</div>
+
+<!-- Top 1 -->
+<div class="top1">
+    <span>Top 1 This Week</span>
+</div>
 
 <script>
-    // Recupera os dados do usuário no localStorage
-    const usuario = JSON.parse(localStorage.getItem("usuarioRnet"));
+// Puxa usuário salvo
+const usuario = JSON.parse(localStorage.getItem("usuarioRnet"));
 
-    let nomeExibir = "User";
-    if (usuario) {
-        if (usuario.empresa && usuario.nomeCEO) {
-            nomeExibir = usuario.nomeCEO; // nome do CEO se empresa
-        } else if (usuario.nome) {
-            nomeExibir = usuario.nome; // usuário normal
-        }
+let nomeExibir = "User";
+
+if (usuario) {
+    if (usuario.empresa && usuario.nomeCEO) {
+        nomeExibir = usuario.nomeCEO;
+    } else if (usuario.nome) {
+        nomeExibir = usuario.nome;
     }
+}
 
-    // Atualiza o texto de boas-vindas
-    document.getElementById("welcome-text").textContent = "Bem-vindo, " + nomeExibir + "!";
+document.getElementById("welcome-text").textContent = "Bem-vindo, " + nomeExibir + "!";
+</script>
+
+</body>
+</html>    document.getElementById("welcome-text").textContent = "Bem-vindo, " + nomeExibir + "!";
 </script>
 
 </body>
