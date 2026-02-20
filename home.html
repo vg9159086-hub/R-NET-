@@ -8,7 +8,7 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
         font-family: Arial, Helvetica, sans-serif;
-        background: url('background.png') no-repeat center top;
+        background: url('backgound1.png') no-repeat center top;
         background-size: cover;
         display: flex;
         flex-direction: column;
@@ -32,8 +32,8 @@
     }
 
     .top-icons img {
-        width: 40px;
-        height: 40px;
+        width: 50px;
+        height: 50px;
         cursor: pointer;
     }
 
@@ -46,36 +46,24 @@
         text-shadow: 2px 2px 4px #ffffff;
     }
 
-    /* Menu com ícones */
-    .menu-buttons {
+    /* Menu Icons */
+    .menu-icons {
         margin-top: 20px;
         display: flex;
-        flex-direction: column;
-        gap: 12px;
+        justify-content: space-around;
         width: 90%;
     }
 
-    .menu-buttons button {
-        background-color: #ff4ca3;
-        color: white;
-        border: none;
-        border-radius: 12px;
-        padding: 12px;
-        font-size: 18px;
-        font-weight: bold;
+    .menu-icons img {
+        width: 60px;
+        height: 60px;
         cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 12px;
         transition: transform 0.2s ease;
     }
 
-    .menu-buttons button img {
-        width: 30px;
-        height: 30px;
+    .menu-icons img:active {
+        transform: scale(0.9);
     }
-
-    .menu-buttons button:active { transform: scale(0.95); }
 
     /* Top 1 This Week */
     .top1 {
@@ -121,14 +109,14 @@
     </div>
 
     <!-- Bem-vindo -->
-    <div class="welcome">Bem-vindo, User!</div>
+    <div class="welcome" id="welcome-text">Bem-vindo, User!</div>
 
-    <!-- Menu Buttons com ícones -->
-    <div class="menu-buttons">
-        <button><img src="icon6.png" alt="MV Zone">MV Zone</button>
-        <button><img src="icon7.png" alt="Weekly Charts">Weekly Charts</button>
-        <button><img src="icon9.png" alt="News!">News!</button>
-        <button><img src="icon8.png" alt="Groups">Groups</button>
+    <!-- Menu Icons -->
+    <div class="menu-icons">
+        <img src="icon6.png" alt="MV Zone">
+        <img src="icon7.png" alt="Weekly Charts">
+        <img src="icon9.png" alt="News!">
+        <img src="icon8.png" alt="Groups">
     </div>
 
     <!-- Top 1 This Week -->
@@ -136,6 +124,23 @@
         <span>Top 1 This Week</span>
         <img src="black.png" alt="Foto do grupo Top 1">
     </div>
+
+<script>
+    // Recupera os dados do usuário no localStorage
+    const usuario = JSON.parse(localStorage.getItem("usuarioRnet"));
+
+    let nomeExibir = "User";
+    if (usuario) {
+        if (usuario.empresa && usuario.nomeCEO) {
+            nomeExibir = usuario.nomeCEO; // nome do CEO se empresa
+        } else if (usuario.nome) {
+            nomeExibir = usuario.nome; // usuário normal
+        }
+    }
+
+    // Atualiza o texto de boas-vindas
+    document.getElementById("welcome-text").textContent = "Bem-vindo, " + nomeExibir + "!";
+</script>
 
 </body>
 </html>
