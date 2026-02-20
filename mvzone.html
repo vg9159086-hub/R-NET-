@@ -1,175 +1,85 @@
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>RNET • MV Zone</title>
-
+<title>RNET MV Zone</title>
 <style>
 body{
     background:#000;
     color:#fff;
     font-family:Arial;
-    margin:0;
     padding:20px;
 }
-
 h1{
-    color:#ff2a8a;
+    color:#ff2d8b;
 }
-
-.logo{
-    width:130px;
-}
-
 .card{
     background:#111;
     padding:15px;
     margin-bottom:20px;
-    border-radius:12px;
+    border-radius:10px;
 }
-
+iframe{
+    width:100%;
+    height:200px;
+    border:none;
+}
 button{
-    background:#ff2a8a;
-    color:#fff;
+    background:#ff2d8b;
     border:none;
     padding:8px 12px;
-    margin:5px 5px 5px 0;
-    border-radius:8px;
-    cursor:pointer;
-}
-
-input{
-    padding:6px;
-    border-radius:6px;
-    border:none;
-}
-
-.ranking{
-    background:#111;
-    padding:15px;
-    border-radius:12px;
-    margin-bottom:20px;
+    color:#fff;
+    margin:5px;
+    border-radius:5px;
 }
 </style>
 </head>
-
 <body>
 
-<img src="https://i.imgur.com/8Km9tLL.png" class="logo">
 <h1>MV Zone</h1>
-
-<div class="ranking">
-<h2>🏆 Ranking Ao Vivo</h2>
-<div id="ranking"></div>
-</div>
-
-<div id="mvzone"></div>
+<div id="lista"></div>
 
 <script>
+function carregar(){
+    const lista = document.getElementById("lista");
+    lista.innerHTML = "";
 
-// ===============================
-// DADOS
-// ===============================
-let mvs = JSON.parse(localStorage.getItem("rnet_mvs")) || [];
+    let mvs = JSON.parse(localStorage.getItem("rnet_mvs")) || [];
 
-// ===============================
-// SALVAR
-// ===============================
-function salvar(){
-    localStorage.setItem("rnet_mvs", JSON.stringify(mvs));
-    render();
-}
-
-// ===============================
-// VOTO (1 por pessoa)
-// ===============================
-function votar(index, tipo){
-
-    let votos = JSON.parse(localStorage.getItem("rnet_votos")) || {};
-
-    if(!votos[index]){
-        votos[index] = null;
-    }
-
-    if(votos[index] === tipo){
-        // remover voto
-        if(tipo==="like") mvs[index].likes -= 5;
-        if(tipo==="dislike") mvs[index].dislikes -= 5;
-        votos[index] = null;
-    } else {
-
-        // remover voto anterior
-        if(votos[index]==="like") mvs[index].likes -= 5;
-        if(votos[index]==="dislike") mvs[index].dislikes -= 5;
-
-        // aplicar novo
-        if(tipo==="like") mvs[index].likes += 5;
-        if(tipo==="dislike") mvs[index].dislikes += 5;
-
-        votos[index] = tipo;
-    }
-
-    localStorage.setItem("rnet_votos", JSON.stringify(votos));
-    salvar();
-}
-
-// ===============================
-// COMENTÁRIOS
-// ===============================
-function comentar(index){
-
-    let nome = prompt("Seu nome:");
-    if(!nome) return;
-
-    let texto = prompt("Comentário:");
-    if(!texto) return;
-
-    if(!mvs[index].comentarios){
-        mvs[index].comentarios = [];
-    }
-
-    mvs[index].comentarios.push({
-        nome,
-        texto
-    });
-
-    salvar();
-}
-
-// ===============================
-// RENDER
-// ===============================
-function render(){
-
-    let container = document.getElementById("mvzone");
-    let rankingDiv = document.getElementById("ranking");
-
-    if(mvs.length===0){
-        container.innerHTML = "<p>Nenhum MV ainda.</p>";
-        rankingDiv.innerHTML = "Sem ranking.";
+    if(mvs.length === 0){
+        lista.innerHTML = "<p>Nenhum MV ainda</p>";
         return;
     }
 
-    // Ranking
-    let ranking = [...mvs].sort((a,b)=> (b.likes - b.dislikes) - (a.likes - a.dislikes));
+    // Ranking ao vivo
+    mvs.sort((a,b)=>(b.likes - b.dislikes) - (a.likes - a.dislikes));
 
-    let rankingHTML = "";
-    ranking.forEach((mv,i)=>{
-        rankingHTML += `<p>${i+1}º - ${mv.artista} (${mv.likes - mv.dislikes} pts)</p>`;
+    mvs.forEach((mv, index)=>{
+        const idVideo = pegarID(mv.url);
+
+        const div = document.createElement("div");
+        div.className = "card";
+
+        div.innerHTML = `
+        <h3>#${index+1} ${mv.nome}</h3>
+        <iframe src="https://www.youtube.com/embed/${idVideo}" allowfullscreen></iframe>
+        <p>Score: ${mv.likes - mv.dislikes}</p>
+        <button onclick="like(${index})">👍 ${mv.likes}</button>
+        <button onclick="dislike(${index})">👎 ${mv.dislikes}</button>
+        `;
+
+        lista.appendChild(div);
     });
-    rankingDiv.innerHTML = rankingHTML;
+}
 
-    // MVs
-    let html = "";
+function like(i){
+    let mvs = JSON.parse(localStorage.getItem("rnet_mvs"));
+    mvs[i].likes++;
+    localStorage.setItem("rnet_mvs", JSON.stringify(mvs));
+    carregar();
+}
 
-    mvs.forEach((mv,index)=>{
-
-        let embed = mv.url
-            .replace("watch?v=","embed/")
-            .replace("youtu.be/","youtube.com/embed/");
-
-        html += `
-        <div class="card">
-            <h3>${mv.artista}</h3>
-
-            <iframe width="100%" height="
+function dislike(i){
+    let mvs = JSON.parse(localStorage.getItem("rnet_mvs"));
+    mvs[i].dislikes++;
