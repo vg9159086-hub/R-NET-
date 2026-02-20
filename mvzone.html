@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,321 +7,187 @@
 
 <style>
 body{
-    font-family: Arial;
-    background:#fff0f6;
+    margin:0;
+    font-family:Arial, sans-serif;
+    background:#0f0f0f;
+    color:white;
+}
+
+header{
+    background:#1a1a1a;
+    padding:15px;
+    text-align:center;
+    font-size:20px;
+    font-weight:bold;
+}
+
+.container{
     padding:15px;
 }
 
-/* Cards */
-.mv-card{
-    background:white;
-    border-radius:15px;
-    padding:15px;
+.mvCard{
+    background:#1a1a1a;
+    padding:10px;
+    border-radius:12px;
     margin-bottom:20px;
-    box-shadow:0 5px 10px rgba(0,0,0,0.1);
 }
 
 iframe{
     width:100%;
-    height:200px;
+    height:220px;
     border-radius:10px;
 }
 
-.vote-area{
+.vote{
     display:flex;
-    justify-content:center;
-    gap:40px;
+    gap:15px;
     margin-top:10px;
+    align-items:center;
 }
 
-.vote-btn{
-    text-align:center;
+.vote img{
+    width:32px;
     cursor:pointer;
 }
 
-.vote-btn img{
-    width:35px;
+.score{
+    font-weight:bold;
+    margin-top:5px;
 }
 
-/* Comentários */
-.comment-box{
+.comments{
     margin-top:10px;
 }
 
-.comment-box input{
-    width:75%;
-    padding:6px;
-    border-radius:8px;
-    border:1px solid #ccc;
-}
-
-.comment-box button{
-    padding:6px 10px;
-    border:none;
-    background:hotpink;
-    color:white;
-    border-radius:8px;
-}
-
-.comment{
-    background:#f9f9f9;
+.comments input{
+    width:100%;
     padding:6px;
     border-radius:6px;
+    border:none;
     margin-top:5px;
-    font-size:13px;
-}
-
-/* Ranking medalha */
-.medal{
-    font-size:20px;
-    color:gold;
-}
-
-/* Tela Winner */
-.winner-screen{
-    position:fixed;
-    top:0;
-    left:0;
-    width:100%;
-    height:100%;
-    background:rgba(0,0,0,0.85);
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    z-index:999;
-}
-
-.winner-box{
-    background:white;
-    padding:20px;
-    border-radius:20px;
-    text-align:center;
-    width:90%;
-    max-width:350px;
-}
-
-.trophy{
-    font-size:60px;
-    animation:trofeuAnim 1s infinite alternate;
-}
-
-@keyframes trofeuAnim{
-    from{transform:scale(1);}
-    to{transform:scale(1.2);}
 }
 </style>
 </head>
 <body>
 
-<h1>MV Zone</h1>
+<header>🔥 MV Zone</header>
 
-<div id="destaque"></div>
-<h2>Lista de MVs</h2>
-<div id="lista"></div>
-
-<h2>🏆 Ranking AO VIVO</h2>
-<div id="ranking"></div>
-
-<!-- Tela Winner -->
-<div id="winnerScreen" class="winner-screen" style="display:none;">
-    <div class="winner-box">
-        <h2>🏆 WINNER OF THE WEEK</h2>
-        <h1 id="winnerName"></h1>
-        <div class="trophy">🏆</div>
-        <iframe id="winnerVideo" style="width:100%;height:180px;"></iframe>
-        <button onclick="fecharWinner()">Continuar</button>
-    </div>
+<div class="container">
+    <div id="mvList"></div>
 </div>
 
 <script>
 
-// ===== USER =====
-if(!localStorage.getItem("rnetUser")){
-    localStorage.setItem("rnetUser","user"+Math.floor(Math.random()*100000));
-}
-let userId = localStorage.getItem("rnetUser");
-
-// ===== MVs =====
-let mvs = JSON.parse(localStorage.getItem("mvs"));
-
-if(!mvs){
-mvs=[{
-id:"1",
-grupo:"TEST GROUP",
-url:"https://youtu.be/hUJNcB8_Oc0",
-likes:0,
-dislikes:0,
-users:{},
-comments:[],
-createdAt:Date.now()
-}];
-localStorage.setItem("mvs",JSON.stringify(mvs));
-}
-
-// ===== VOTO =====
-function votar(index,tipo){
-let mv=mvs[index];
-
-if(mv.users[userId]===tipo){
-if(tipo=="like") mv.likes-=5;
-if(tipo=="dislike") mv.dislikes-=1;
-delete mv.users[userId];
-}else{
-if(mv.users[userId]=="like") mv.likes-=5;
-if(mv.users[userId]=="dislike") mv.dislikes-=1;
-
-if(tipo=="like") mv.likes+=5;
-if(tipo=="dislike") mv.dislikes+=1;
-
-mv.users[userId]=tipo;
-}
-
-salvar();
-render();
-}
-
-// ===== COMENTÁRIOS =====
-function comentar(index){
-let input=document.getElementById("commentInput"+index);
-let texto=input.value.trim();
-if(texto=="") return;
-
-mvs[index].comments.push({
-user:userId,
-text:texto,
-time:new Date().toLocaleString()
-});
-
-input.value="";
-salvar();
-render();
-}
-
-function deletarComentario(mvIndex,commentIndex){
-let c=mvs[mvIndex].comments[commentIndex];
-if(c.user!==userId) return;
-
-mvs[mvIndex].comments.splice(commentIndex,1);
-salvar();
-render();
-}
-
-// ===== SALVAR =====
-function salvar(){
-localStorage.setItem("mvs",JSON.stringify(mvs));
-}
-
-// ===== RENDER =====
-function render(){
-
-mvs = JSON.parse(localStorage.getItem("mvs")) || [];
-
-let lista=document.getElementById("lista");
-lista.innerHTML="";
-
-mvs.forEach((mv,i)=>{
-
-let vid = mv.url.split("youtu.be/")[1];
-
-let comentariosHTML = mv.comments.map((c,ci)=>`
-<div class="comment">
-<b>${c.user}</b> (${c.time})<br>
-${c.text}
-${c.user===userId ? `<br><button onclick="deletarComentario(${i},${ci})">Apagar</button>`:""}
-</div>
-`).join("");
-
-lista.innerHTML+=`
-<div class="mv-card">
-<h3>${mv.grupo}</h3>
-
-<iframe src="https://www.youtube.com/embed/${vid}" allowfullscreen></iframe>
-
-<div class="vote-area">
-<div class="vote-btn" onclick="votar(${i},'like')">
-<img src="like.png"><div>${mv.likes}</div>
-</div>
-
-<div class="vote-btn" onclick="votar(${i},'dislike')">
-<img src="deslike.png"><div>${mv.dislikes}</div>
-</div>
-</div>
-
-<p>Pontos: ${mv.likes-mv.dislikes}</p>
-
-<div class="comment-box">
-<input id="commentInput${i}" placeholder="Comentar...">
-<button onclick="comentar(${i})">Enviar</button>
-</div>
-
-<div>${comentariosHTML}</div>
-
-</div>
-`;
-});
-
-gerarRanking();
-}
-
-// ===== RANKING AO VIVO =====
-function gerarRanking(){
-
-let ranking = mvs.map(mv=>{
-return{
-grupo:mv.grupo,
-score:mv.likes-mv.dislikes,
-url:mv.url
+// PUXA USUÁRIO LOGADO
+let user = JSON.parse(localStorage.getItem("user")) || {
+    name:"Visitante"
 };
-});
 
-ranking.sort((a,b)=>b.score-a.score);
+// PUXA MVS DO LABEL
+let mvs = JSON.parse(localStorage.getItem("mvs")) || [];
 
-document.getElementById("ranking").innerHTML=
-ranking.map((mv,i)=>`
-<p>
-${i==0?"🥇":i==1?"🥈":i==2?"🥉":(i+1)+"º"}
- - ${mv.grupo} (${mv.score})
-</p>
-`).join("");
-
-// Destaque
-if(ranking.length>0){
-let top=ranking[0];
-let vid=top.url.split("youtu.be/")[1];
-
-document.getElementById("destaque").innerHTML=`
-<div class="mv-card">
-<h3 class="medal">🏆 ${top.grupo}</h3>
-<iframe src="https://www.youtube.com/embed/${vid}"></iframe>
-<p>${top.score} pontos</p>
-</div>
-`;
-}
+// CONVERTER LINK PRA EMBED (ANTI BUG)
+function getEmbed(videoId){
+    return `https://www.youtube.com/embed/${videoId}`;
 }
 
-// ===== RANKING AO VIVO AUTOMÁTICO =====
-setInterval(()=>{
-render();
-},3000);
+// RENDERIZAR MVS
+function renderMVs(){
 
+    const container = document.getElementById("mvList");
+    container.innerHTML = "";
 
-// ===== WINNER SCREEN (se existir) =====
-let lastWinner = JSON.parse(localStorage.getItem("lastWinner"));
-if(lastWinner){
-let vid = lastWinner.url.split("youtu.be/")[1];
-document.getElementById("winnerName").innerText=lastWinner.grupo;
-document.getElementById("winnerVideo").src="https://www.youtube.com/embed/"+vid;
-document.getElementById("winnerScreen").style.display="flex";
-localStorage.removeItem("lastWinner");
+    // RANKING AO VIVO
+    mvs.sort((a,b)=>b.score - a.score);
+
+    mvs.forEach((mv,index)=>{
+
+        container.innerHTML += `
+        <div class="mvCard">
+
+            <h3>#${index+1} - ${mv.name}</h3>
+
+            <iframe src="${getEmbed(mv.videoId)}" allowfullscreen></iframe>
+
+            <div class="score">Pontuação: ${mv.score}</div>
+
+            <div class="vote">
+                <img src="like.png" onclick="vote(${mv.id}, 5)">
+                <img src="deslike.png" onclick="vote(${mv.id}, -5)">
+            </div>
+
+            <div class="comments">
+                <h4>Comentários</h4>
+                ${mv.comments.map(c=>`<p><b>${c.user}:</b> ${c.text}</p>`).join("")}
+
+                <input 
+                    placeholder="Comentar..." 
+                    onkeypress="if(event.key==='Enter'){addComment(${mv.id}, this.value); this.value='';}">
+            </div>
+
+        </div>
+        `;
+    });
+
 }
 
-function fecharWinner(){
-document.getElementById("winnerScreen").style.display="none";
+// SISTEMA DE VOTO
+function vote(mvId, value){
+
+    let mv = mvs.find(m=>m.id===mvId);
+
+    if(!mv.votes) mv.votes = {};
+
+    if(!mv.votes[user.name]){
+        mv.votes[user.name] = value;
+        mv.score += value;
+
+    }else{
+
+        if(mv.votes[user.name] === value){
+            // REMOVE VOTO
+            mv.score -= value;
+            delete mv.votes[user.name];
+
+        }else{
+            // TROCA VOTO
+            mv.score -= mv.votes[user.name];
+            mv.votes[user.name] = value;
+            mv.score += value;
+        }
+    }
+
+    save();
+    renderMVs();
 }
 
-// START
-render();
+// COMENTÁRIO
+function addComment(mvId, text){
+
+    if(!text) return;
+
+    let mv = mvs.find(m=>m.id===mvId);
+
+    if(!mv.comments) mv.comments = [];
+
+    mv.comments.push({
+        user: user.name,
+        text: text
+    });
+
+    save();
+    renderMVs();
+}
+
+// SALVAR
+function save(){
+    localStorage.setItem("mvs", JSON.stringify(mvs));
+}
+
+// INICIAR
+renderMVs();
 
 </script>
+
 </body>
 </html>
