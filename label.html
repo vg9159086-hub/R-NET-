@@ -2,254 +2,150 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>RNET Label</title>
+<title>RNET • Label</title>
 
 <style>
 body{
     background:#000;
     color:#fff;
     font-family:Arial;
-    margin:0;
     padding:20px;
 }
 
 h1{
-    color:#ff2a8a;
-}
-
-.logo{
-    width:120px;
-    margin-bottom:10px;
+    color:#ff2d8b;
 }
 
 .card{
     background:#111;
     padding:15px;
-    border-radius:10px;
-    margin-bottom:15px;
-}
-
-button{
-    background:#ff2a8a;
-    color:#fff;
-    border:none;
-    padding:10px;
-    margin-top:5px;
-    border-radius:8px;
-    cursor:pointer;
+    margin-bottom:20px;
+    border-radius:12px;
 }
 
 input{
-    padding:8px;
-    margin-top:5px;
     width:100%;
+    padding:8px;
+    margin:5px 0;
     border-radius:6px;
     border:none;
 }
 
-img.artist{
+button{
+    background:#ff2d8b;
+    border:none;
+    padding:8px 12px;
+    color:#fff;
+    margin-top:5px;
+    border-radius:6px;
+    cursor:pointer;
+}
+
+img{
     width:100%;
-    max-height:200px;
-    object-fit:contain;
+    border-radius:10px;
     margin-top:10px;
-    background:#000;
 }
 </style>
 </head>
 
 <body>
 
-<img src="https://i.imgur.com/8Km9tLL.png" class="logo">
 <h1>RNET Label</h1>
 
-<div id="content"></div>
+<div class="card">
+    <h2>Novo Artista</h2>
+
+    <input type="text" id="nome" placeholder="Nome do artista">
+    <input type="text" id="foto" placeholder="Link da foto do artista">
+    <input type="text" id="mv" placeholder="Link do MV (YouTube)">
+
+    <button onclick="cadastrar()">Cadastrar Artista</button>
+</div>
+
+<div id="lista"></div>
 
 <script>
-// ===============================
-// ACESSO (Empresa apenas)
-// ===============================
-if(localStorage.getItem("userType") !== "empresa"){
-    document.body.innerHTML = `
-    <div style="height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;background:#000;color:#fff;text-align:center;">
-        <h1 style="color:#ff2a8a;">RNET Label</h1>
-        <p>Como deseja entrar?</p>
-        <button onclick="enterEmpresa()">Empresa</button>
-        <button onclick="alert('Visitantes não têm acesso ao Label')">Visitante</button>
-    </div>
-    `;
-}
 
-function enterEmpresa(){
-    localStorage.setItem("userType","empresa");
-    location.reload();
-}
+// =======================
+// CARREGAR ARTISTAS
+// =======================
+let artistas = JSON.parse(localStorage.getItem("rnet_mvs")) || [];
 
-// ===============================
-// DADOS
-// ===============================
-let artistas = JSON.parse(localStorage.getItem("rnet_artistas")) || [];
-let mvs = JSON.parse(localStorage.getItem("rnet_mvs")) || [];
-
-// ===============================
-// LIMITES
-// ===============================
-function contar(tipo){
-    return artistas.filter(a=>a.tipo===tipo).length;
-}
-
-// ===============================
-// YOUTUBE
-// ===============================
-function youtubeValido(url){
-    return url.includes("youtube.com") || url.includes("youtu.be");
-}
-
-// ===============================
-// 1 MV por semana
-// ===============================
-function podePostar(nome){
-    let agora = Date.now();
-    let semana = 7*24*60*60*1000;
-
-    let ultimo = mvs
-        .filter(m=>m.artista===nome)
-        .sort((a,b)=>b.data-a.data)[0];
-
-    if(!ultimo) return true;
-    return (agora - ultimo.data) > semana;
-}
-
-// ===============================
-// SALVAR
-// ===============================
 function salvar(){
-    localStorage.setItem("rnet_artistas", JSON.stringify(artistas));
-    localStorage.setItem("rnet_mvs", JSON.stringify(mvs));
+    localStorage.setItem("rnet_mvs", JSON.stringify(artistas));
     render();
 }
 
-// ===============================
-// CADASTRAR
-// ===============================
-function cadastrar(tipo){
-    let nome = document.getElementById("nome").value;
-    let fotoInput = document.getElementById("foto");
+// =======================
+// CADASTRAR ARTISTA
+// =======================
+function cadastrar(){
 
-    if(!nome || fotoInput.files.length === 0){
-        alert("Preencha tudo");
+    const nome = document.getElementById("nome").value;
+    const foto = document.getElementById("foto").value;
+    const mv = document.getElementById("mv").value;
+
+    if(!nome || !mv){
+        alert("Preencha nome e link do MV");
         return;
     }
 
-    if(tipo==="grupo" && contar("grupo")>=15){
-        alert("Limite de 15 grupos");
-        return;
-    }
-
-    if(tipo==="solo" && contar("solo")>=10){
-        alert("Limite de 10 solistas");
-        return;
-    }
-
-    let reader = new FileReader();
-    reader.onload = function(e){
-        artistas.push({
-            nome,
-            tipo,
-            foto:e.target.result
-        });
-        salvar();
-    }
-    reader.readAsDataURL(fotoInput.files[0]);
-}
-
-// ===============================
-// ADICIONAR MV
-// ===============================
-function addMV(nome){
-    let url = prompt("Cole o link do YouTube");
-
-    if(!youtubeValido(url)){
-        alert("Apenas links do YouTube");
-        return;
-    }
-
-    if(!podePostar(nome)){
-        alert("Esse artista só pode lançar 1 MV por semana");
-        return;
-    }
-
-    mvs.push({
-        artista:nome,
-        url,
-        likes:0,
-        dislikes:0,
-        comentarios:[],
-        data:Date.now()
+    artistas.push({
+        nome: nome,
+        foto: foto,
+        url: mv,
+        likes: 0,
+        dislikes: 0
     });
 
     salvar();
-    alert("MV enviado para o MV Zone!");
+
+    document.getElementById("nome").value="";
+    document.getElementById("foto").value="";
+    document.getElementById("mv").value="";
 }
 
-// ===============================
+// =======================
 // DELETAR
-// ===============================
-function deletarArtista(nome){
-    if(!confirm("Tem certeza que deseja deletar?")) return;
-    artistas = artistas.filter(a=>a.nome!==nome);
-    mvs = mvs.filter(m=>m.artista!==nome);
+// =======================
+function deletar(index){
+    artistas.splice(index,1);
     salvar();
 }
 
-function deletarMV(index){
-    if(!confirm("Excluir MV?")) return;
-    mvs.splice(index,1);
-    salvar();
-}
-
-// ===============================
+// =======================
 // RENDER
-// ===============================
+// =======================
 function render(){
-    let html = `
-    <div class="card">
-        <h3>Novo Grupo</h3>
-        <input id="nome" placeholder="Nome">
-        <input id="foto" type="file" accept="image/*">
-        <button onclick="cadastrar('grupo')">Cadastrar Grupo</button>
-        <button onclick="cadastrar('solo')">Cadastrar Solista</button>
-    </div>
-    `;
 
-    artistas.forEach(a=>{
-        html+=`
-        <div class="card">
-            <h3>${a.nome} (${a.tipo})</h3>
-            <img src="${a.foto}" class="artist">
-            <button onclick="addMV('${a.nome}')">Adicionar MV</button>
-            <button onclick="deletarArtista('${a.nome}')">Deletar</button>
-        </div>
+    const lista = document.getElementById("lista");
+    lista.innerHTML = "";
+
+    if(artistas.length === 0){
+        lista.innerHTML = "<p>Nenhum artista cadastrado.</p>";
+        return;
+    }
+
+    artistas.forEach((artista,index)=>{
+
+        const div = document.createElement("div");
+        div.className = "card";
+
+        div.innerHTML = `
+        <h3>${artista.nome}</h3>
+        ${artista.foto ? `<img src="${artista.foto}">` : ""}
+        <p>MV cadastrado ✔</p>
+        <button onclick="deletar(${index})">Remover</button>
         `;
+
+        lista.appendChild(div);
     });
-
-    html+=`<div class="card"><h2>MVs</h2>`;
-
-    mvs.forEach((m,i)=>{
-        html+=`
-        <p>${m.artista}</p>
-        <a href="${m.url}" target="_blank">${m.url}</a><br>
-        <button onclick="deletarMV(${i})">Excluir MV</button>
-        <hr>
-        `;
-    });
-
-    html+=`</div>`;
-
-    document.getElementById("content").innerHTML = html;
 }
 
 render();
+
 </script>
 
 </body>
-</html> 
+</html>
