@@ -2,279 +2,174 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RNET • MV Zone</title>
 
 <style>
 body{
-    margin:0;
     background:#000;
-    color:white;
+    color:#fff;
     font-family:Arial;
-}
-
-.header{
-    position:sticky;
-    top:0;
-    background:#000;
-    display:flex;
-    align-items:center;
-    gap:10px;
-    padding:10px 15px;
-    border-bottom:1px solid #222;
-    z-index:100;
-}
-
-.logo{
-    height:40px;
+    margin:0;
+    padding:20px;
 }
 
 h1{
-    color:#ff2d7a;
-    margin:0;
+    color:#ff2a8a;
 }
 
-.container{
-    padding:15px;
+.logo{
+    width:130px;
 }
 
-.mv{
+.card{
     background:#111;
     padding:15px;
-    border-radius:15px;
     margin-bottom:20px;
+    border-radius:12px;
 }
 
-.mv h3{
-    color:#ff2d7a;
-    margin:0 0 5px 0;
-}
-
-.info{
-    font-size:13px;
-    color:#aaa;
-    margin-bottom:10px;
-}
-
-iframe{
-    width:100%;
-    height:200px;
-    border-radius:10px;
+button{
+    background:#ff2a8a;
+    color:#fff;
     border:none;
-}
-
-.actions{
-    display:flex;
-    gap:20px;
-    margin-top:10px;
-    align-items:center;
-}
-
-.actions img{
-    width:35px;
+    padding:8px 12px;
+    margin:5px 5px 5px 0;
+    border-radius:8px;
     cursor:pointer;
 }
 
-.score{
-    margin-top:8px;
-    font-weight:bold;
-}
-
-.comment-box{
-    width:100%;
-    padding:8px;
-    margin-top:10px;
-    border-radius:8px;
+input{
+    padding:6px;
+    border-radius:6px;
     border:none;
 }
 
-.comment{
-    background:#222;
-    padding:8px;
-    border-radius:8px;
-    margin-top:8px;
-    font-size:14px;
-}
-
-.delete{
-    color:red;
-    font-size:12px;
-    cursor:pointer;
+.ranking{
+    background:#111;
+    padding:15px;
+    border-radius:12px;
+    margin-bottom:20px;
 }
 </style>
 </head>
+
 <body>
 
-<div class="header">
-    <img src="logo.png" class="logo">
-    <h1>MV Zone</h1>
+<img src="https://i.imgur.com/8Km9tLL.png" class="logo">
+<h1>MV Zone</h1>
+
+<div class="ranking">
+<h2>🏆 Ranking Ao Vivo</h2>
+<div id="ranking"></div>
 </div>
 
-<div class="container" id="area"></div>
+<div id="mvzone"></div>
 
 <script>
 
-// ===== USUÁRIO =====
-let user = JSON.parse(localStorage.getItem("usuarioLogado")) || {nome:"Visitante", id:"visit"};
+// ===============================
+// DADOS
+// ===============================
+let mvs = JSON.parse(localStorage.getItem("rnet_mvs")) || [];
 
-// ===== LABEL POSTS (EMPRESAS) =====
-let labels = JSON.parse(localStorage.getItem("labels")) || [];
-
-// ===== MV ZONE =====
-let mvs = JSON.parse(localStorage.getItem("mvs")) || [];
-
-// ===== SISTEMA AUTOMÁTICO =====
-
-// adicionar novos MVs do Label automaticamente
-labels.forEach(post=>{
-
-    let existe = mvs.find(m=>m.labelID === post.id);
-
-    if(!existe){
-        mvs.push({
-            id: Date.now()+Math.random(),
-            labelID: post.id,
-            group: post.group,
-            company: post.company,
-            url: post.url,
-            likes:0,
-            dislikes:0,
-            score:0,
-            comments:[],
-            votes:{},
-            data: Date.now()
-        });
-    }
-});
-
-// remover após 30 dias
-let agora = Date.now();
-mvs = mvs.filter(m=> agora - m.data < 30*24*60*60*1000);
-
-// recalcular pontuação
-mvs.forEach(m=>{
-    m.score = (m.likes*5) - (m.dislikes*5);
-});
-
-// ordenar ranking automático
-mvs.sort((a,b)=> b.score - a.score);
-
-// limitar top 100
-mvs = mvs.slice(0,100);
-
-// salvar banco atualizado
-localStorage.setItem("mvs", JSON.stringify(mvs));
-
-// ===== RENDER =====
-let area = document.getElementById("area");
-
-mvs.forEach((mv,index)=>{
-
-    let videoID = mv.url.split("v=")[1]?.split("&")[0] || mv.url.split("youtu.be/")[1];
-
-    let div = document.createElement("div");
-    div.className="mv";
-
-    div.innerHTML=`
-        <h3>#${index+1} • ${mv.group}</h3>
-        <div class="info">${mv.company}</div>
-
-        <iframe src="https://www.youtube.com/embed/${videoID}" allowfullscreen></iframe>
-
-        <div class="score">
-            Pontos: ${mv.score} | 👍 ${mv.likes} | 👎 ${mv.dislikes}
-        </div>
-
-        <div class="actions">
-            <img src="like.png" onclick="vote('${mv.id}',1)">
-            <img src="deslike.png" onclick="vote('${mv.id}',-1)">
-        </div>
-
-        <small style="color:#aaa;">
-        Seja criativo! Ex: "A coreografia ficou incrível", 
-        "O membro X brilhou", "Melhor comeback do ano!"
-        </small>
-
-        <input class="comment-box" id="c${mv.id}" placeholder="Comentar...">
-        <button onclick="comment('${mv.id}')">Enviar</button>
-
-        <div id="comments${mv.id}"></div>
-    `;
-
-    area.appendChild(div);
-    renderComments(mv.id);
-});
-
-// ===== VOTAÇÃO =====
-function vote(id,type){
-
-    let mvs = JSON.parse(localStorage.getItem("mvs"));
-    let mv = mvs.find(m=>m.id==id);
-
-    let uid = user.id || user.nome;
-
-    if(mv.votes[uid]){
-        if(mv.votes[uid]==1){mv.likes--;}
-        if(mv.votes[uid]==-1){mv.dislikes--;}
-        delete mv.votes[uid];
-    }else{
-        mv.votes[uid]=type;
-        if(type==1){mv.likes++;}
-        if(type==-1){mv.dislikes++;}
-    }
-
-    localStorage.setItem("mvs", JSON.stringify(mvs));
-    location.reload();
+// ===============================
+// SALVAR
+// ===============================
+function salvar(){
+    localStorage.setItem("rnet_mvs", JSON.stringify(mvs));
+    render();
 }
 
-// ===== COMENTAR =====
-function comment(id){
+// ===============================
+// VOTO (1 por pessoa)
+// ===============================
+function votar(index, tipo){
 
-    let texto = document.getElementById("c"+id).value;
+    let votos = JSON.parse(localStorage.getItem("rnet_votos")) || {};
+
+    if(!votos[index]){
+        votos[index] = null;
+    }
+
+    if(votos[index] === tipo){
+        // remover voto
+        if(tipo==="like") mvs[index].likes -= 5;
+        if(tipo==="dislike") mvs[index].dislikes -= 5;
+        votos[index] = null;
+    } else {
+
+        // remover voto anterior
+        if(votos[index]==="like") mvs[index].likes -= 5;
+        if(votos[index]==="dislike") mvs[index].dislikes -= 5;
+
+        // aplicar novo
+        if(tipo==="like") mvs[index].likes += 5;
+        if(tipo==="dislike") mvs[index].dislikes += 5;
+
+        votos[index] = tipo;
+    }
+
+    localStorage.setItem("rnet_votos", JSON.stringify(votos));
+    salvar();
+}
+
+// ===============================
+// COMENTÁRIOS
+// ===============================
+function comentar(index){
+
+    let nome = prompt("Seu nome:");
+    if(!nome) return;
+
+    let texto = prompt("Comentário:");
     if(!texto) return;
 
-    let mvs = JSON.parse(localStorage.getItem("mvs"));
-    let mv = mvs.find(m=>m.id==id);
+    if(!mvs[index].comentarios){
+        mvs[index].comentarios = [];
+    }
 
-    mv.comments.push({
-        cid:Date.now(),
-        user:user.nome,
-        text:texto
+    mvs[index].comentarios.push({
+        nome,
+        texto
     });
 
-    localStorage.setItem("mvs", JSON.stringify(mvs));
-    location.reload();
+    salvar();
 }
 
-// ===== RENDER COMMENTS =====
-function renderComments(id){
+// ===============================
+// RENDER
+// ===============================
+function render(){
 
-    let mvs = JSON.parse(localStorage.getItem("mvs"));
-    let mv = mvs.find(m=>m.id==id);
-    let box = document.getElementById("comments"+id);
+    let container = document.getElementById("mvzone");
+    let rankingDiv = document.getElementById("ranking");
 
-    mv.comments.forEach(c=>{
-        let d=document.createElement("div");
-        d.className="comment";
-        d.innerHTML=`
-        <b>${c.user}</b>: ${c.text}
-        ${c.user===user.nome ? `<span class="delete" onclick="del('${id}','${c.cid}')"> apagar</span>`:""}
-        `;
-        box.appendChild(d);
+    if(mvs.length===0){
+        container.innerHTML = "<p>Nenhum MV ainda.</p>";
+        rankingDiv.innerHTML = "Sem ranking.";
+        return;
+    }
+
+    // Ranking
+    let ranking = [...mvs].sort((a,b)=> (b.likes - b.dislikes) - (a.likes - a.dislikes));
+
+    let rankingHTML = "";
+    ranking.forEach((mv,i)=>{
+        rankingHTML += `<p>${i+1}º - ${mv.artista} (${mv.likes - mv.dislikes} pts)</p>`;
     });
-}
+    rankingDiv.innerHTML = rankingHTML;
 
-function del(id,cid){
+    // MVs
+    let html = "";
 
-    let mvs = JSON.parse(localStorage.getItem("mvs"));
-    let mv = mvs.find(m=>m.id==id);
+    mvs.forEach((mv,index)=>{
 
-    mv.comments = mv.comments.filter(c=>c.cid!=cid);
+        let embed = mv.url
+            .replace("watch?v=","embed/")
+            .replace("youtu.be/","youtube.com/embed/");
 
-    localStorage.setItem("mvs", JSON.stringify(mvs));
-    location.reload();
-}
+        html += `
+        <div class="card">
+            <h3>${mv.artista}</h3>
 
-</script>
-</body>
-</html>
+            <iframe width="100%" height="
