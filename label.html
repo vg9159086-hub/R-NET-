@@ -1,0 +1,250 @@
+<!DOCTYPE html><html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Minha Label</title><style>
+body{
+    margin:0;
+    font-family: Arial, Helvetica, sans-serif;
+    background-image:url("background.png");
+    background-size:cover;
+    background-position:center;
+}
+
+/* HEADER */
+header{
+    background:#ff4da6;
+    color:white;
+    text-align:center;
+    padding:15px;
+    font-size:20px;
+    font-weight:bold;
+    box-shadow:0 3px 10px rgba(255,77,166,0.4);
+}
+
+/* CARD */
+.card{
+    background:white;
+    margin:15px;
+    padding:15px;
+    border-radius:15px;
+    box-shadow:0 5px 15px rgba(255,77,166,0.2);
+}
+
+/* TITLES */
+.section-title{
+    color:#ff4da6;
+    font-weight:bold;
+    margin-bottom:10px;
+}
+
+/* INPUT */
+input{
+    width:100%;
+    padding:10px;
+    margin-top:8px;
+    border-radius:8px;
+    border:1px solid #ffcce6;
+}
+
+/* BUTTON */
+button{
+    width:100%;
+    padding:10px;
+    margin-top:10px;
+    background:#ff4da6;
+    color:white;
+    border:none;
+    border-radius:10px;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+button:active{
+    transform:scale(0.98);
+}
+
+/* ITEM */
+.item{
+    border-bottom:1px solid #ffe6f2;
+    padding:10px 0;
+}
+
+.item:last-child{
+    border-bottom:none;
+}
+
+.item img{
+    width:100%;
+    max-height:150px;
+    object-fit:cover;
+    border-radius:10px;
+    margin-bottom:5px;
+}
+
+.small-btn{
+    background:#ff85c2;
+    margin-top:5px;
+}
+</style></head>
+<body><header>Minha Label</header><div class="card" id="empresaInfo"></div><!-- FORM GRUPO --><div class="card">
+<div class="section-title">Adicionar Grupo</div>
+<input id="g_nome" placeholder="Nome do grupo">
+<input id="g_integrantes" placeholder="Integrantes">
+<input id="g_conceito" placeholder="Conceito">
+<input id="g_debut" placeholder="Data de debut">
+<input id="g_fandom" placeholder="Fandom">
+<input id="g_cor" placeholder="Cor do fandom">
+<input id="g_foto" placeholder="Link da foto">
+<button onclick="addGrupo()">Adicionar Grupo</button>
+</div><!-- LISTA GRUPOS --><div class="card">
+<div class="section-title">Grupos</div>
+<div id="listaGrupos"></div>
+</div><!-- FORM SOLISTA --><div class="card">
+<div class="section-title">Adicionar Solista</div>
+<input id="s_nome" placeholder="Nome do solista">
+<input id="s_conceito" placeholder="Conceito">
+<input id="s_debut" placeholder="Data de debut">
+<input id="s_fandom" placeholder="Fandom">
+<input id="s_cor" placeholder="Cor do fandom">
+<input id="s_foto" placeholder="Link da foto">
+<button onclick="addSolista()">Adicionar Solista</button>
+</div><!-- LISTA SOLISTAS --><div class="card">
+<div class="section-title">Solistas</div>
+<div id="listaSolistas"></div>
+</div><script>
+
+let empresa = JSON.parse(localStorage.getItem("empresaAtual"));
+
+if(!empresa){
+    empresa = {
+        nomeEmpresa:"Minha Empresa",
+        ceo:"CEO",
+        grupos:[],
+        solistas:[]
+    };
+}
+
+if(!empresa.grupos) empresa.grupos=[];
+if(!empresa.solistas) empresa.solistas=[];
+
+document.getElementById("empresaInfo").innerHTML = `
+<div class="section-title">Empresa</div>
+<b>${empresa.nomeEmpresa}</b><br>
+CEO: ${empresa.ceo}
+`;
+
+function salvar(){
+    localStorage.setItem("empresaAtual", JSON.stringify(empresa));
+}
+
+/* ======================
+   GRUPO
+====================== */
+function addGrupo(){
+    let grupo = {
+        id:Date.now(),
+        nome:g_nome.value,
+        integrantes:g_integrantes.value,
+        conceito:g_conceito.value,
+        debut:g_debut.value,
+        fandom:g_fandom.value,
+        cor:g_cor.value,
+        foto:g_foto.value
+    };
+
+    empresa.grupos.push(grupo);
+    salvar();
+    atualizarGrupos();
+    limparGrupo();
+}
+
+function limparGrupo(){
+    g_nome.value="";
+    g_integrantes.value="";
+    g_conceito.value="";
+    g_debut.value="";
+    g_fandom.value="";
+    g_cor.value="";
+    g_foto.value="";
+}
+
+function atualizarGrupos(){
+    listaGrupos.innerHTML="";
+    empresa.grupos.forEach(g=>{
+        listaGrupos.innerHTML+=`
+        <div class="item">
+            <img src="${g.foto || 'https://via.placeholder.com/300x150'}">
+            <b>${g.nome}</b><br>
+            ${g.integrantes}<br>
+            ${g.conceito}<br>
+            ${g.debut}<br>
+            ${g.fandom} (${g.cor})
+            <button class="small-btn" onclick="deleteGrupo(${g.id})">Excluir</button>
+        </div>
+        `;
+    });
+}
+
+function deleteGrupo(id){
+    empresa.grupos = empresa.grupos.filter(g=>g.id!==id);
+    salvar();
+    atualizarGrupos();
+}
+
+/* ======================
+   SOLISTA
+====================== */
+function addSolista(){
+    let solista = {
+        id:Date.now(),
+        nome:s_nome.value,
+        conceito:s_conceito.value,
+        debut:s_debut.value,
+        fandom:s_fandom.value,
+        cor:s_cor.value,
+        foto:s_foto.value
+    };
+
+    empresa.solistas.push(solista);
+    salvar();
+    atualizarSolistas();
+    limparSolista();
+}
+
+function limparSolista(){
+    s_nome.value="";
+    s_conceito.value="";
+    s_debut.value="";
+    s_fandom.value="";
+    s_cor.value="";
+    s_foto.value="";
+}
+
+function atualizarSolistas(){
+    listaSolistas.innerHTML="";
+    empresa.solistas.forEach(s=>{
+        listaSolistas.innerHTML+=`
+        <div class="item">
+            <img src="${s.foto || 'https://via.placeholder.com/300x150'}">
+            <b>${s.nome}</b><br>
+            ${s.conceito}<br>
+            ${s.debut}<br>
+            ${s.fandom} (${s.cor})
+            <button class="small-btn" onclick="deleteSolista(${s.id})">Excluir</button>
+        </div>
+        `;
+    });
+}
+
+function deleteSolista(id){
+    empresa.solistas = empresa.solistas.filter(s=>s.id!==id);
+    salvar();
+    atualizarSolistas();
+}
+
+atualizarGrupos();
+atualizarSolistas();
+
+</script></body>
+</html>
