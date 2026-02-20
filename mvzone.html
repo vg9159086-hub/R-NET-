@@ -2,55 +2,20 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>RNET MV Zone</title>
+<title>RNET MV Zone Online</title>
 <style>
-body{
-    margin:0;
-    font-family:Arial;
-    background:#000;
-    color:#fff;
-    padding:10px;
-}
-header{
-    background:#111;
-    color:#ff2d8b;
-    text-align:center;
-    font-size:22px;
-    font-weight:bold;
-    padding:10px;
-}
-.container{
-    padding:10px;
-}
-.card{
-    background:#111;
-    padding:10px;
-    margin-bottom:15px;
-    border-radius:10px;
-}
-button{
-    background:#ff2d8b;
-    border:none;
-    color:#fff;
-    padding:5px 10px;
-    margin:2px;
-    border-radius:5px;
-    cursor:pointer;
-}
-input{
-    width:90%;
-    padding:5px;
-    margin:5px 0;
-    border-radius:5px;
-    border:none;
-}
+body{margin:0;font-family:Arial;background:#000;color:#fff;padding:10px;}
+header{background:#111;color:#ff2d8b;text-align:center;font-size:22px;font-weight:bold;padding:10px;}
+.container{padding:10px;}
+.card{background:#111;padding:10px;margin-bottom:15px;border-radius:10px;}
+button{background:#ff2d8b;border:none;color:#fff;padding:5px 10px;margin:2px;border-radius:5px;cursor:pointer;}
+input{width:90%;padding:5px;margin:5px 0;border-radius:5px;border:none;}
 .hidden{display:none;}
 </style>
 </head>
 <body>
 
 <header>RNET</header>
-
 <div class="container">
 
 <!-- LOGIN -->
@@ -60,7 +25,7 @@ input{
 <button onclick="entrarVisitante()">Visitante</button>
 </div>
 
-<!-- LABEL (Adicionar Artista) -->
+<!-- LABEL -->
 <div id="label" class="hidden card">
 <h2>Adicionar Artista (Empresa)</h2>
 <input id="artistaNome" placeholder="Nome do Artista">
@@ -78,9 +43,26 @@ input{
 <div id="ranking"></div>
 </div>
 
-</div>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
+// ============================
+// CONFIGURAÇÃO FIREBASE
+// ============================
+const firebaseConfig = {
+  apiKey: "SUA_API_KEY",
+  authDomain: "SEU_PROJETO.firebaseapp.com",
+  databaseURL: "https://SEU_PROJETO-default-rtdb.firebaseio.com",
+  projectId: "SEU_PROJETO",
+  storageBucket: "SEU_PROJETO.appspot.com",
+  messagingSenderId: "SEU_SENDER_ID",
+  appId: "SEU_APP_ID"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
 // ============================
 // GERAR ID ÚNICO DE USUÁRIO
 // ============================
@@ -94,14 +76,12 @@ if(!userID){
 // LOGIN
 // ============================
 let isEmpresa = false;
-
 function entrarEmpresa(){
     isEmpresa = true;
     document.getElementById("login").classList.add("hidden");
     document.getElementById("label").classList.remove("hidden");
     document.getElementById("mvzone").classList.remove("hidden");
 }
-
 function entrarVisitante(){
     isEmpresa = false;
     document.getElementById("login").classList.add("hidden");
@@ -109,113 +89,81 @@ function entrarVisitante(){
 }
 
 // ============================
-// BANCO DE ARTISTAS
-// ============================
-let artistas = JSON.parse(localStorage.getItem("rnet_mvs")) || [];
-
-// ============================
-// FUNÇÃO ADICIONAR ARTISTA
+// ADICIONAR ARTISTA
 // ============================
 function adicionarArtista(){
     if(!isEmpresa){ alert("Somente empresas podem adicionar artistas!"); return; }
+    let nome = document.getElementById("artistaNome").value.trim();
+    let empresa = document.getElementById("empresaNome").value.trim();
+    let mv = document.getElementById("mvLink").value.trim();
+    if(!nome || !empresa || !mv){ alert("Preencha todos os campos!"); return; }
 
-    let nome = document.getElementById("artistaNome").value;
-    let empresa = document.getElementById("empresaNome").value;
-    let mv = document.getElementById("mvLink").value;
-
-    if(!nome || !empresa || !mv){
-        alert("Preencha todos os campos!");
-        return;
-    }
-
-    // Limite de 15 grupos / 10 solos
-    let countEmpresa = artistas.filter(a=>a.empresa==empresa).length;
-    if(countEmpresa>=15){ alert("Limite de artistas para esta empresa atingido!"); return; }
-
-    artistas.push({
-        id:userID+"_"+Date.now(),
-        nome:nome,
-        empresa:empresa,
-        url:mv,
-        pontos:0,
-        likes:[],
-        dislikes:[],
-        comentarios:[],
-        data: new Date().getTime()
-    });
-
-    salvar();
-    document.getElementById("artistaNome").value="";
-    document.getElementById("empresaNome").value="";
-    document.getElementById("mvLink").value="";
-}
-
-// ============================
-// SALVAR & RENDER
-// ============================
-function salvar(){
-    localStorage.setItem("rnet_mvs", JSON.stringify(artistas));
-    renderLabel();
-    renderRanking();
-}
-
-// ============================
-// RENDER LABEL
-// ============================
-function renderLabel(){
-    let lista = document.getElementById("listaArtistas");
-    lista.innerHTML="";
-    artistas.forEach((a,i)=>{
-        if(a.empresa && isEmpresa){
-            lista.innerHTML+=`
-            <div class="card">
-            <h3>${a.nome} (${a.empresa})</h3>
-            <p>MV: <a href="${a.url}" target="_blank">${a.url}</a></p>
-            <button onclick="removerArtista(${i})">Remover MV</button>
-            </div>`;
+    // Limite 15 artistas por empresa
+    db.ref("mvs").orderByChild("empresa").equalTo(empresa).once("value", snap=>{
+        if(snap.exists() && Object.keys(snap.val()).length >= 15){
+            alert("Limite de artistas da empresa atingido!");
+            return;
         }
-    });
-}
 
-function removerArtista(i){
-    if(artistas[i].empresa != document.getElementById("empresaNome").value && !isEmpresa) return;
-    artistas.splice(i,1);
-    salvar();
+        let id = "mv_"+Date.now();
+        db.ref("mvs/"+id).set({
+            id:id,
+            nome:nome,
+            empresa:empresa,
+            url:mv,
+            pontos:0,
+            likes:[],
+            dislikes:[],
+            comentarios:[],
+            data:Date.now()
+        });
+        document.getElementById("artistaNome").value="";
+        document.getElementById("empresaNome").value="";
+        document.getElementById("mvLink").value="";
+    });
 }
 
 // ============================
 // RENDER RANKING / MV ZONE
 // ============================
 function renderRanking(){
-    const now = new Date().getTime();
-    // Remove MVs com mais de 1 mês
-    artistas = artistas.filter(a => now - a.data < 30*24*60*60*1000);
+    db.ref("mvs").once("value").then(snap=>{
+        let artistas = snap.val() || {};
+        const now = Date.now();
 
-    let ranking = document.getElementById("ranking");
-    ranking.innerHTML="";
+        // Remove MVs com mais de 1 mês
+        Object.keys(artistas).forEach(k=>{
+            if(now - artistas[k].data > 30*24*60*60*1000){
+                db.ref("mvs/"+k).remove();
+                delete artistas[k];
+            }
+        });
 
-    // Ordenar por pontos
-    let ordenado = [...artistas].sort((a,b)=>b.pontos-a.pontos);
+        // Ordenar por pontos
+        let ordenado = Object.values(artistas).sort((a,b)=>b.pontos - a.pontos).slice(0,100);
+        let ranking = document.getElementById("ranking");
+        ranking.innerHTML="";
 
-    ordenado.forEach((a,i)=>{
-        let userLiked = a.likes.includes(userID);
-        let userDisliked = a.dislikes.includes(userID);
-        ranking.innerHTML+=`
-        <div class="card">
-        <h3>#${i+1} ${a.nome} (${a.empresa}) - ${a.pontos} pts</h3>
-        <iframe width="100%" height="200" src="${a.url.replace("watch?v=","embed/")}" frameborder="0" allowfullscreen></iframe>
-        <div>
-        <button onclick="darLike('${a.id}')">${userLiked?'Remover Like':'👍 Like'}</button>
-        <button onclick="darDislike('${a.id}')">${userDisliked?'Remover Deslike':'👎 Deslike'}</button>
-        </div>
-        <div>
-        <input id="nomeC_${a.id}" placeholder="Seu nome">
-        <input id="comC_${a.id}" placeholder="Comentário">
-        <button onclick="comentar('${a.id}')">Comentar</button>
-        </div>
-        <div>${a.comentarios.map(c=>`<p><b>${c.user}:</b> ${c.texto} <button onclick="removerComentario('${a.id}','${c.id}')">X</button></p>`).join("")}</div>
-        </div>
-        `;
+        ordenado.forEach(a=>{
+            let userLiked = a.likes.includes(userID);
+            let userDisliked = a.dislikes.includes(userID);
+            ranking.innerHTML+=`
+            <div class="card">
+            <h3>${a.nome} (${a.empresa}) - ${a.pontos} pts</h3>
+            <iframe width="100%" height="200" src="${a.url.replace("watch?v=","embed/")}" frameborder="0" allowfullscreen></iframe>
+            <div>
+            <button onclick="darLike('${a.id}')">${userLiked?'Remover Like':'👍 Like'}</button>
+            <button onclick="darDislike('${a.id}')">${userDisliked?'Remover Deslike':'👎 Deslike'}</button>
+            </div>
+            <div>
+            <input id="nomeC_${a.id}" placeholder="Seu nome">
+            <input id="comC_${a.id}" placeholder="Comentário">
+            <button onclick="comentar('${a.id}')">Comentar</button>
+            </div>
+            <div>${a.comentarios.map(c=>`<p><b>${c.user}:</b> ${c.texto} ${c.userID==userID?'<button onclick="removerComentario(\''+a.id+'\',\''+c.id+'\')">X</button>':''}</p>`).join("")}</div>
+            </div>
+            `;
+        });
     });
 }
 
@@ -223,75 +171,96 @@ function renderRanking(){
 // LIKE / DISLIKE
 // ============================
 function darLike(id){
-    let a = artistas.find(x=>x.id==id);
-    if(a.likes.includes(userID)){
-        a.likes = a.likes.filter(x=>x!=userID);
-        a.pontos -=5;
-    } else {
-        if(a.dislikes.includes(userID)){
-            a.dislikes = a.dislikes.filter(x=>x!=userID);
-            a.pontos +=5;
-        }
-        a.likes.push(userID);
-        a.pontos +=5;
-    }
-    salvar();
-}
+    db.ref("mvs/"+id).once("value").then(snap=>{
+        let a = snap.val();
+        if(!a) return;
+        let likes = a.likes || [];
+        let dislikes = a.dislikes || [];
+        let pontos = a.pontos || 0;
 
-function darDislike(id){
-    let a = artistas.find(x=>x.id==id);
-    if(a.dislikes.includes(userID)){
-        a.dislikes = a.dislikes.filter(x=>x!=userID);
-        a.pontos +=5;
-    } else {
-        if(a.likes.includes(userID)){
-            a.likes = a.likes.filter(x=>x!=userID);
-            a.pontos -=5;
+        if(likes.includes(userID)){
+            likes = likes.filter(x=>x!=userID);
+            pontos -=5;
+        } else {
+            if(dislikes.includes(userID)){
+                dislikes = dislikes.filter(x=>x!=userID);
+                pontos +=5;
+            }
+            likes.push(userID);
+            pontos +=5;
         }
-        a.dislikes.push(userID);
-        a.pontos -=5;
-    }
-    salvar();
+        db.ref("mvs/"+id).update({likes:likes, dislikes:dislikes, pontos:pontos});
+        renderRanking();
+    });
+}
+function darDislike(id){
+    db.ref("mvs/"+id).once("value").then(snap=>{
+        let a = snap.val();
+        if(!a) return;
+        let likes = a.likes || [];
+        let dislikes = a.dislikes || [];
+        let pontos = a.pontos || 0;
+
+        if(dislikes.includes(userID)){
+            dislikes = dislikes.filter(x=>x!=userID);
+            pontos +=5;
+        } else {
+            if(likes.includes(userID)){
+                likes = likes.filter(x=>x!=userID);
+                pontos -=5;
+            }
+            dislikes.push(userID);
+            pontos -=5;
+        }
+        db.ref("mvs/"+id).update({likes:likes, dislikes:dislikes, pontos:pontos});
+        renderRanking();
+    });
 }
 
 // ============================
 // COMENTÁRIOS
 // ============================
 function comentar(id){
-    let artista = artistas.find(x=>x.id==id);
-    let user = document.getElementById("nomeC_"+id).value;
-    let texto = document.getElementById("comC_"+id).value;
+    let user = document.getElementById("nomeC_"+id).value.trim();
+    let texto = document.getElementById("comC_"+id).value.trim();
     if(!user || !texto) return;
 
-    artista.comentarios.push({
-        id:userID+"_"+Date.now(),
+    let commentID = userID+"_"+Date.now();
+    db.ref("mvs/"+id+"/comentarios/"+commentID).set({
+        id:commentID,
+        userID:userID,
         user:user,
         texto:texto
     });
-    salvar();
+    renderRanking();
 }
-
-function removerComentario(artistaID, comID){
-    let artista = artistas.find(x=>x.id==artistaID);
-    artista.comentarios = artista.comentarios.filter(c=>c.id != comID || c.id.split("_")[0]!=userID);
-    salvar();
+function removerComentario(mvID, comID){
+    db.ref("mvs/"+mvID+"/comentarios/"+comID).once("value").then(snap=>{
+        if(snap.val().userID==userID){
+            db.ref("mvs/"+mvID+"/comentarios/"+comID).remove();
+            renderRanking();
+        }
+    });
 }
 
 // ============================
 // RESET SEMANAL AUTOMÁTICO
 // ============================
-function resetSemanal(){
-    artistas.forEach(a=>a.pontos=0);
-    salvar();
-}
-
-// Chamar reset semanal (aqui exemplo, toda vez que abre pode simular)
-setInterval(resetSemanal, 7*24*60*60*1000); // 7 dias
+setInterval(()=>{
+    db.ref("mvs").once("value").then(snap=>{
+        let artistas = snap.val() || {};
+        Object.keys(artistas).forEach(k=>{
+            db.ref("mvs/"+k).update({pontos:0});
+        });
+        renderRanking();
+    });
+},7*24*60*60*1000); // 7 dias
 
 // ============================
-renderLabel();
-renderRanking();
-</script>
+// LISTENER REAL TIME
+// ============================
+db.ref("mvs").on("value", renderRanking);
 
+</script>
 </body>
 </html>
