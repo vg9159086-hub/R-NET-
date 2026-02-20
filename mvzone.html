@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>R-NET - MV Zone</title>
+
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: Arial, sans-serif;
+    background: url('backgound1.png') no-repeat center top;
+    background-size: cover;
+    min-height: 100vh;
+    padding: 20px;
+    color: #ff4ca3;
+}
+
+h2 {
+    text-align: center;
+    font-size: 26px;
+    margin-bottom: 20px;
+}
+
+.mv-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+    margin-bottom: 20px;
+    padding: 15px;
+    width: 90%;
+    max-width: 400px;
+    margin: auto;
+}
+
+.mv-card iframe {
+    width: 100%;
+    height: 200px;
+    border-radius: 16px;
+}
+
+.mv-info {
+    margin-top: 12px;
+    line-height: 1.4;
+    font-size: 16px;
+}
+
+.watch-btn {
+    margin-top: 15px;
+    width: 100%;
+    padding: 12px;
+    background-color: #ff4ca3;
+    color: white;
+    border: none;
+    border-radius: 30px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.watch-btn:hover {
+    transform: scale(1.05);
+}
+</style>
+</head>
+
+<body>
+
+<h2>MV Zone</h2>
+
+<div class="mv-card">
+
+    <!-- Embed do vídeo -->
+    <iframe src="https://www.youtube.com/embed/hUJNcB8_Oc0?si=iCsqnzvgNKF4i5_C" 
+            frameborder="0" allowfullscreen></iframe>
+
+    <div class="mv-info">
+        <strong>Nome do MV:</strong> Test MV <br>
+        <strong>Grupo:</strong> Test Group <br>
+        <strong>Empresa:</strong> Test Company <br>
+        <strong>CEO:</strong> Test CEO
+    </div>
+
+    <button class="watch-btn" onclick="window.open('https://youtu.be/hUJNcB8_Oc0?si=iCsqnzvgNKF4i5_C','_blank')">
+        Assistir no YouTube
+    </button>
+
+</div>
+
+</body>
+</html>
