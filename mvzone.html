@@ -11,53 +11,44 @@
   <div id="mvList"></div>
 
   <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
-
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyDa1Lm_bSz18M11gT0CZio-CG0mOqvBd7I",
-      authDomain: "mvzone-29363.firebaseapp.com",
-      projectId: "mvzone-29363",
-      storageBucket: "mvzone-29363.firebasestorage.app",
-      messagingSenderId: "927971258967",
-      appId: "1:927971258967:web:f6b889fe9ac8265af7e912"
-    };
+  const firebaseConfig = {
+    apiKey: "AIzaSyDa1Lm_bSz18M11gT0CZio-CG0mOqvBd7I",
+    authDomain: "mvzone-29363.firebaseapp.com",
+    projectId: "mvzone-29363",
+    storageBucket: "mvzone-29363.firebasestorage.app",
+    messagingSenderId: "927971258967",
+    appId: "1:927971258967:web:f6b889fe9ac8265af7e912"
+  };
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
 
-    db.collection("mvzone")
-      .orderBy("timestamp", "desc")
-      .onSnapshot((snapshot) => {
-        const container = document.getElementById("mvList");
-        container.innerHTML = "";
+  db.collection("mvzone").get().then((snapshot) => {
+    const container = document.getElementById("mvList");
+    container.innerHTML = "";
 
-        snapshot.forEach(doc => {
-          const data = doc.data();
+    if (snapshot.empty) {
+      container.innerHTML = "<p>NENHUM MV ENCONTRADO</p>";
+      return;
+    }
 
-          let videoId = "";
-          if (data.url.includes("youtu.be/")) {
-            videoId = data.url.split("youtu.be/")[1].split("?")[0];
-          } else if (data.url.includes("v=")) {
-            videoId = data.url.split("v=")[1].split("&")[0];
-          }
+    snapshot.forEach((doc) => {
+      const data = doc.data();
 
-          const mv = document.createElement("div");
-          mv.innerHTML = `
-            <h3>${data.artist}</h3>
-            <p>${data.company}</p>
-            <iframe width="300" height="170"
-              src="https://www.youtube.com/embed/${videoId}"
-              frameborder="0" allowfullscreen>
-            </iframe>
-            <p>Likes: ${data.likes}</p>
-            <hr>
-          `;
-
-          container.appendChild(mv);
-        });
-      });
+      container.innerHTML += `
+        <div>
+          <h3>${data.artist}</h3>
+          <p>${data.company}</p>
+          <p>${data.url}</p>
+          <p>Likes: ${data.likes}</p>
+          <hr>
+        </div>
+      `;
+    });
+  }).catch((error) => {
+    alert("Erro: " + error.message);
+  });
   </script>
 
 </body>
