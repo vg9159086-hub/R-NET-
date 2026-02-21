@@ -1,161 +1,64 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>MV Zone</title>
-<style>
-body { font-family: Arial; background:#111; color:#fff; margin:0; padding:10px;}
-header { text-align:center; font-size:22px; font-weight:bold; padding:10px; background:#222; }
-.card { background:#222; padding:10px; margin-bottom:15px; border-radius:10px; }
-button { background:#ff2d8b; border:none; color:#fff; padding:5px 10px; margin:2px; border-radius:5px; cursor:pointer; }
-input { width:90%; padding:5px; margin:5px 0; border-radius:5px; border:none; }
-.hidden { display:none; }
-</style>
+  <meta charset="UTF-8">
+  <title>MVZONE</title>
 </head>
 <body>
 
-<header>RNET - MV Zone</header>
+  <h1>MVZONE</h1>
 
-<!-- LOGIN -->
-<div id="login" class="card">
-<h2>Entrar como:</h2>
-<button onclick="entrarEmpresa()">Empresa</button>
-<button onclick="entrarVisitante()">Visitante</button>
-</div>
+  <div id="mvList"></div>
 
-<!-- LABEL / ADICIONAR ARTISTA -->
-<div id="label" class="card hidden">
-<h2>Adicionar Artista (Empresa)</h2>
-<input id="artistaNome" placeholder="Nome do Artista">
-<input id="empresaNome" placeholder="Nome da Empresa">
-<input id="mvLink" placeholder="Link do MV (YouTube)">
-<button onclick="adicionarArtista()">Adicionar</button>
-<h3>Artistas Cadastrados</h3>
-<div id="listaArtistas"></div>
-</div>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
 
-<!-- MV ZONE -->
-<div id="mvzone" class="card hidden">
-<h2>MV Zone / Charts</h2>
-<div id="ranking"></div>
-<button onclick="resetSemanal()">Reset Semanal (teste)</button>
-</div>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDa1Lm_bSz18M11gT0CZio-CG0mOqvBd7I",
+      authDomain: "mvzone-29363.firebaseapp.com",
+      projectId: "mvzone-29363",
+      storageBucket: "mvzone-29363.firebasestorage.app",
+      messagingSenderId: "927971258967",
+      appId: "1:927971258967:web:f6b889fe9ac8265af7e912"
+    };
 
-<script>
-// JSON hospedado online (substitua pelo seu link real)
-const jsonURL = "https://vg9159086-hub.github.io/mvzone/";
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-let mvs = [];
+    db.collection("mvzone")
+      .orderBy("timestamp", "desc")
+      .onSnapshot((snapshot) => {
+        const container = document.getElementById("mvList");
+        container.innerHTML = "";
 
-// ID único de usuário
-let userID = localStorage.getItem("rnet_userID");
-if(!userID){
-    userID = "user_"+Math.random().toString(36).substr(2,9);
-    localStorage.setItem("rnet_userID", userID);
-}
+        snapshot.forEach(doc => {
+          const data = doc.data();
 
-// Login
-let isEmpresa = false;
-function entrarEmpresa(){ isEmpresa=true; document.getElementById("login").classList.add("hidden"); document.getElementById("label").classList.remove("hidden"); document.getElementById("mvzone").classList.remove("hidden"); renderRanking();}
-function entrarVisitante(){ isEmpresa=false; document.getElementById("login").classList.add("hidden"); document.getElementById("mvzone").classList.remove("hidden"); renderRanking();}
+          let videoId = "";
+          if (data.url.includes("youtu.be/")) {
+            videoId = data.url.split("youtu.be/")[1].split("?")[0];
+          } else if (data.url.includes("v=")) {
+            videoId = data.url.split("v=")[1].split("&")[0];
+          }
 
-// Buscar JSON
-fetch(jsonURL)
-  .then(res => res.json())
-  .then(data => {
-      mvs = data.mvs;
-      renderRanking();
-  });
+          const mv = document.createElement("div");
+          mv.innerHTML = `
+            <h3>${data.artist}</h3>
+            <p>${data.company}</p>
+            <iframe width="300" height="170"
+              src="https://www.youtube.com/embed/${videoId}"
+              frameborder="0" allowfullscreen>
+            </iframe>
+            <p>Likes: ${data.likes}</p>
+            <hr>
+          `;
 
-// Adicionar Artista/MV (empresa)
-function adicionarArtista(){
-    if(!isEmpresa){ alert("Somente empresas podem adicionar artistas!"); return; }
-    let nome=document.getElementById("artistaNome").value.trim();
-    let empresa=document.getElementById("empresaNome").value.trim();
-    let mv=document.getElementById("mvLink").value.trim();
-    if(!nome || !empresa || !mv){ alert("Preencha todos os campos!"); return; }
+          container.appendChild(mv);
+        });
+      });
+  </script>
 
-    // Limite 15 grupos por empresa
-    let count = mvs.filter(a=>a.empresa===empresa).length;
-    if(count>=15){ alert("Limite de artistas da empresa atingido!"); return; }
-
-    let id="mv_"+Date.now();
-    mvs.push({id:id, nome:nome, empresa:empresa, url:mv, pontos:0, likes:[], dislikes:[], comentarios:[], data:Date.now()});
-    document.getElementById("artistaNome").value="";
-    document.getElementById("empresaNome").value="";
-    document.getElementById("mvLink").value="";
-    renderRanking();
-}
-
-// Render Ranking
-function renderRanking(){
-    const ranking=document.getElementById("ranking");
-    ranking.innerHTML="";
-    const now=Date.now();
-    // Remove MVs com mais de 1 mês
-    mvs = mvs.filter(a => now - a.data <= 30*24*60*60*1000);
-    // Ordena por pontos
-    let ordenado = mvs.sort((a,b)=>b.pontos-a.pontos).slice(0,100);
-
-    ordenado.forEach(a=>{
-        let userLiked = a.likes.includes(userID);
-        let userDisliked = a.dislikes.includes(userID);
-        let comentariosHTML = a.comentarios.map(c=>`<p><b>${c.user}:</b> ${c.texto} ${c.userID==userID?'<button onclick="removerComentario(\''+a.id+'\',\''+c.id+'\')">X</button>':''}</p>`).join("");
-        ranking.innerHTML += `
-        <div class="card">
-        <h3>${a.nome} (${a.empresa}) - ${a.pontos} pts</h3>
-        <iframe width="100%" height="200" src="${a.url.replace("watch?v=","embed/")}" frameborder="0" allowfullscreen></iframe>
-        <div>
-            <button onclick="darLike('${a.id}')">${userLiked?'Remover Like':'👍 Like'}</button>
-            <button onclick="darDislike('${a.id}')">${userDisliked?'Remover Deslike':'👎 Dislike'}</button>
-        </div>
-        <div>
-            <input id="nomeC_${a.id}" placeholder="Seu nome">
-            <input id="comC_${a.id}" placeholder="Comentário">
-            <button onclick="comentar('${a.id}')">Comentar</button>
-        </div>
-        <div>${comentariosHTML}</div>
-        </div>`;
-    });
-}
-
-// Likes / Dislikes
-function darLike(id){
-    let a = mvs.find(x=>x.id===id);
-    if(!a) return;
-    if(a.likes.includes(userID)){ a.likes = a.likes.filter(x=>x!==userID); a.pontos-=5; }
-    else { if(a.dislikes.includes(userID)){ a.dislikes = a.dislikes.filter(x=>x!==userID); a.pontos+=5; } a.likes.push(userID); a.pontos+=5; }
-    renderRanking();
-}
-function darDislike(id){
-    let a = mvs.find(x=>x.id===id);
-    if(!a) return;
-    if(a.dislikes.includes(userID)){ a.dislikes = a.dislikes.filter(x=>x!==userID); a.pontos+=5; }
-    else { if(a.likes.includes(userID)){ a.likes = a.likes.filter(x=>x!==userID); a.pontos-=5; } a.dislikes.push(userID); a.pontos-=5; }
-    renderRanking();
-}
-
-// Comentários
-function comentar(id){
-    let user=document.getElementById("nomeC_"+id).value.trim();
-    let texto=document.getElementById("comC_"+id).value.trim();
-    if(!user||!texto) return;
-    let commentID=userID+"_"+Date.now();
-    let a = mvs.find(x=>x.id===id);
-    a.comentarios.push({id:commentID, userID:userID, user:user, texto:texto});
-    renderRanking();
-}
-function removerComentario(mvID, comID){
-    let a = mvs.find(x=>x.id===mvID);
-    let c = a.comentarios.find(x=>x.id===comID);
-    if(c && c.userID==userID){ a.comentarios = a.comentarios.filter(x=>x.id!==comID); renderRanking(); }
-}
-
-// Reset semanal (simulado)
-function resetSemanal(){
-    mvs.forEach(a=>a.pontos=0);
-    renderRanking();
-}
-</script>
 </body>
 </html>
