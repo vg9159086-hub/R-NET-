@@ -17,6 +17,7 @@ alert("SITE CARREGOU");
 
   <!-- Firebase -->
   <script>
+  <script>
   const firebaseConfig = {
     apiKey: "AIzaSyDa1Lm_bSz18M11gT0CZio-CG0mOqvBd7I",
     authDomain: "mvzone-29363.firebaseapp.com",
@@ -29,31 +30,13 @@ alert("SITE CARREGOU");
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
-  db.collection("mvzone").get().then((snapshot) => {
-    const container = document.getElementById("mvList");
-    container.innerHTML = "";
-
-    if (snapshot.empty) {
-      container.innerHTML = "<p>NENHUM MV ENCONTRADO</p>";
-      return;
-    }
-
-    snapshot.forEach((doc) => {
-      const data = doc.data();
-
-      container.innerHTML += `
-        <div>
-          <h3>${data.artist}</h3>
-          <p>${data.company}</p>
-          <p>${data.url}</p>
-          <p>Likes: ${data.likes}</p>
-          <hr>
-        </div>
-      `;
+  db.collection("mvzone").get()
+    .then(snapshot => {
+      alert("Conectou! Docs: " + snapshot.size);
+    })
+    .catch(error => {
+      alert("Erro Firebase: " + error.message);
     });
-  }).catch((error) => {
-    alert("Erro: " + error.message);
-  });
   </script>
 
 </body>
