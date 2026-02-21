@@ -16,7 +16,7 @@ alert("SITE CARREGOU");
   <div id="mvList"></div>
 
   <!-- Firebase -->
-  <script type="module">
+<script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
@@ -34,24 +34,47 @@ alert("SITE CARREGOU");
 
   const container = document.getElementById("mvList");
 
-  const querySnapshot = await getDocs(collection(db, "mvzone"));
-
-  if (querySnapshot.empty) {
-    container.innerHTML = "Nenhum MV encontrado.";
-  } else {
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      container.innerHTML += `
-        <div>
-          <h3>${data.artist}</h3>
-          <p>${data.company}</p>
-          <p>${data.url}</p>
-          <hr>
-        </div>
-      `;
-    });
+  function getYouTubeId(url) {
+    if (!url) return "";
+    if (url.includes("youtu.be/")) {
+      return url.split("youtu.be/")[1].split("?")[0];
+    }
+    if (url.includes("v=")) {
+      return url.split("v=")[1].split("&")[0];
+    }
+    return "";
   }
-  </script>
+
+  try {
+    const querySnapshot = await getDocs(collection(db, "mvzone"));
+
+    if (querySnapshot.empty) {
+      container.innerHTML = "Nenhum MV encontrado.";
+    } else {
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const videoId = getYouTubeId(data.url);
+
+        container.innerHTML += `
+          <div style="margin-bottom:30px; border-bottom:1px solid #ccc;">
+            <h2>${data.artist}</h2>
+            <p><b>Empresa:</b> ${data.company}</p>
+
+            <iframe width="320" height="180"
+              src="https://www.youtube.com/embed/${videoId}"
+              frameborder="0"
+              allowfullscreen>
+            </iframe>
+
+            <p>👍 Likes: ${data.likes || 0}</p>
+          </div>
+        `;
+      });
+    }
+  } catch (error) {
+    container.innerHTML = "Erro: " + error.message;
+  }
+</script>
 
 </body>
 </html>
