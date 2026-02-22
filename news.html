@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>R-net News</title>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<style>
+body {
+  margin:0;
+  font-family: Arial, sans-serif;
+  background: #f0f0f0;
+}
+
+header{
+  background:#111;
+  padding:10px;
+  text-align:center;
+}
+
+.logo {
+  height:60px;
+}
+
+.news-container {
+  display:flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding:20px;
+}
+
+.postIt {
+  width:250px;
+  min-height:150px;
+  margin:15px;
+  padding:15px;
+  border-radius:12px;
+  position:relative;
+  box-shadow:0 5px 10px rgba(0,0,0,0.2);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.postIt h3 {
+  margin:0 0 5px 0;
+}
+
+.postIt p {
+  margin:5px 0;
+}
+
+.postIt .controls {
+  position:absolute;
+  top:5px;
+  right:5px;
+}
+
+.postIt .controls button {
+  background:#ff0055;
+  border:none;
+  color:white;
+  padding:4px 8px;
+  margin-left:3px;
+  border-radius:5px;
+  cursor:pointer;
+}
+
+.color-yellow { background:#fff49c; color:#000; }
+.color-pink { background:#ffc0cb; color:#000; }
+.color-green { background:#a0f2a0; color:#000; }
+.color-orange { background:#ffb266; color:#000; }
+
+.addNewsBox {
+  text-align:center;
+  margin:20px;
+}
+
+.addNewsBox input, .addNewsBox textarea {
+  width:300px;
+  margin:5px;
+  padding:8px;
+  border-radius:6px;
+  border:1px solid #ccc;
+}
+
+.addNewsBox button {
+  background:#111;
+  color:white;
+  border:none;
+  padding:8px 15px;
+  margin-top:10px;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+.hidden { display:none; }
+</style>
+</head>
+<body>
+
+<header>
+  <img src="logo.png" class="logo">
+</header>
+
+<div class="addNewsBox" id="addNewsBox">
+  <h2>Adicionar Notícia</h2>
+  <input type="text" id="newsTitle" placeholder="Nome da notícia">
+  <input type="text" id="newsDate" placeholder="Data da publicação (ex: 22/02/2026)">
+  <input type="text" id="newsTime" placeholder="Hora da publicação (ex: 14:00)">
+  <textarea id="newsContent" placeholder="Escreva a notícia aqui"></textarea>
+  <input type="text" id="newsImage" placeholder="URL da imagem (opcional)">
+  <button onclick="addNews()">Postar</button>
+</div>
+
+<div class="news-container" id="newsContainer"></div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "SUA_KEY",
+  authDomain: "SEU_AUTH_DOMAIN",
+  projectId: "SEU_PROJECT_ID"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// Seu UID autorizado
+const adminUID = "ITxtdznlxEeXhDoSFcfjYCge6gn1";
+
+// Escolher cores aleatórias para post-it
+const colors = ["color-yellow","color-pink","color-green","color-orange"];
+
+// =========================
+// ADICIONAR NOTÍCIA
+// =========================
+async function addNews(){
+  const title = document.getElementById("newsTitle").value;
+  const date = document.getElementById("newsDate").value;
+  const time = document.getElementById("newsTime").value;
+  const content = document.getElementById("newsContent").value;
+  const image = document.getElementById("newsImage").value;
+  
+  if(!title || !date || !time || !content){
+    alert("Preencha todos os campos obrigatórios!");
+    return;
+  }
+
+  const color = colors[Math.floor(Math.random()*colors.length)];
+
+  await db.collection("news").add({
+    title:title,
+    date:date,
+    time:time,
+    content:content,
+    image:image || "",
+    color:color,
+    createdBy: adminUID,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  // Resetar campos
+  document.getElementById("newsTitle").value="";
+  document.getElementById("newsDate").value="";
+  document.getElementById("newsTime").value="";
+  document.getElementById("newsContent").value="";
+  document.getElementById("newsImage").value="";
+}
+
+// =========================
+// EXIBIR NOTÍCIAS
+// =========================
+db.collection("news").orderBy("createdAt","desc")
+.onSnapshot(snapshot=>{
+  const container = document.getElementById("newsContainer");
+  container.innerHTML="";
+  snapshot.forEach(doc=>{
+    const d = doc.data();
+    const post = document.createElement("div");
+    post.className = "postIt "+(d.color || colors[0]);
+    post.innerHTML = `
+      <h3>${d.title}</h3>
+      <p><strong>${d.date} ${d.time}</strong></p>
+      <p>${d.content}</p>
+      ${d.image ? `<img src="${d.image}" style="width:100%; margin-top:5px; border-radius:6px;">` : ""}
+      ${d.createdBy === adminUID ? `
+      <div class="controls">
+        <button onclick="editNews('${doc.id}')">Editar</button>
+        <button onclick="deleteNews('${doc.id}')">Remover</button>
+      </div>` : ""}
+    `;
+    container.appendChild(post);
+  });
+});
+
+// =========================
+// REMOVER NOTÍCIA
+// =========================
+async function deleteNews(id){
+  if(confirm("Deseja realmente remover essa notícia?")){
+    await db.collection("news").doc(id).delete();
+  }
+}
+
+// =========================
+// EDITAR NOTÍCIA
+// =========================
+async function editNews(id){
+  const doc = await db.collection("news").doc(id).get();
+  const d = doc.data();
+  document.getElementById("newsTitle").value = d.title;
+  document.getElementById("newsDate").value = d.date;
+  document.getElementById("newsTime").value = d.time;
+  document.getElementById("newsContent").value = d.content;
+  document.getElementById("newsImage").value = d.image;
+
+  // Remove a notícia antiga
+  await db.collection("news").doc(id).delete();
+}
+</script>
+
+</body>
+</html>
