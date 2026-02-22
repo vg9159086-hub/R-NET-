@@ -4,7 +4,128 @@
 <meta charset="UTF-8">
 <title>MVZONE</title>
 
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:#0f0f0f;
+  color:white;
+}
+
+header{
+  background:#111;
+  padding:10px;
+  text-align:center;
+}
+
+.logo{height:55px;}
+
+nav button{
+  background:#ff0055;
+  color:white;
+  border:none;
+  padding:8px 14px;
+  margin:5px;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+.card{
+  background:#181818;
+  padding:15px;
+  margin:15px;
+  border-radius:12px;
+  transition:0.4s;
+  animation:fadeIn 0.4s ease;
+}
+
+.card.move{
+  transform:translateY(-6px);
+}
+
+.voteImg{
+  width:40px;
+  cursor:pointer;
+  margin:6px;
+}
+
+.hidden{display:none;}
+
+.trophy{color:gold;}
+
+.top1{
+  border:2px solid gold;
+  box-shadow:0 0 15px gold;
+  animation:glowPulse 1.5s infinite alternate;
+}
+
+@keyframes glowPulse{
+  from{ box-shadow:0 0 10px gold; }
+  to{ box-shadow:0 0 30px gold; }
+}
+
+@keyframes fadeIn{
+from{opacity:0; transform:translateY(15px);}
+to{opacity:1; transform:translateY(0);}
+}
+
+/* REGRAS */
+#rulesScreen{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:#0f0f0f;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+}
+
+.rulesBox{
+  background:#181818;
+  padding:25px;
+  border-radius:12px;
+  text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<div id="rulesScreen">
+  <div class="rulesBox">
+    <h2>Regras do MVZONE</h2>
+    <p>Os votos são ilimitados, use com sabedoria e apoie seu artista.</p>
+    <p>Dê chance a todos os MVs do MVZONE.</p>
+    <button onclick="acceptRules()">Concordo</button>
+  </div>
+</div>
+
+<header>
+  <img src="logo.png" class="logo">
+  <nav>
+    <button onclick="showCharts()">Charts</button>
+    <button onclick="showHistory()">História</button>
+    <button onclick="showHall()">Hall da Fama</button>
+  </nav>
+</header>
+
+<div id="charts"></div>
+
+<div id="history" class="hidden" style="padding:20px;">
+<h2>Sobre o R-net</h2>
+<p>
+o R-net surgiu de uma ideia rescente, após uma reunião de colaboradores surgiu o R-net, esse site consiste em existir um chart automático para o Rpop e KUV, ele atualiza automaticamente, toda semana o placar zera e começa novamente, depois de 30 dias os MVS são removidos e podem ser adicionados apenas MVS rescentes (2 meses) no máximo, os grupos/solistas contam com seus fãs para ganhar o primeiro lugar na parada musical do rpop/kuv, contamos com o apoio de todos vocês para crescermos a popularidade de cada um
+</p>
+</div>
+
+<div id="hall" class="hidden"></div>
 
 <script>
 const firebaseConfig = {
@@ -16,219 +137,90 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+const charts = document.getElementById("charts");
+const historyDiv = document.getElementById("history");
+const hall = document.getElementById("hall");
+const rulesScreen = document.getElementById("rulesScreen");
+
 let lastPositions = {};
 let currentFirst = null;
 const victorySound = new Audio("victory.mp3");
 
-/* ========================= */
 /* REGRAS */
-/* ========================= */
-
 function acceptRules(){
   localStorage.setItem("rulesAccepted","yes");
-  document.getElementById("rulesScreen").style.display="none";
+  rulesScreen.style.display="none";
 }
-
 if(localStorage.getItem("rulesAccepted")==="yes"){
-  document.getElementById("rulesScreen").style.display="none";
+  rulesScreen.style.display="none";
 }
 
-/* ========================= */
 /* NAVEGAÇÃO */
-/* ========================= */
-
 function showCharts(){
   charts.classList.remove("hidden");
-  history.classList.add("hidden");
+  historyDiv.classList.add("hidden");
   hall.classList.add("hidden");
 }
-
 function showHistory(){
   charts.classList.add("hidden");
-  history.classList.remove("hidden");
+  historyDiv.classList.remove("hidden");
   hall.classList.add("hidden");
 }
-
 function showHall(){
   charts.classList.add("hidden");
-  history.classList.add("hidden");
+  historyDiv.classList.add("hidden");
   hall.classList.remove("hidden");
 
-  hall.innerHTML = "<h2>🏆 Hall da Fama Mensal</h2>";
+  hall.innerHTML="<h2>🏆 Hall da Fama Mensal</h2>";
 
   db.collection("hallOfFame")
   .orderBy("createdAt","desc")
   .onSnapshot(snapshot=>{
-    hall.innerHTML = "<h2>🏆 Hall da Fama Mensal</h2>";
-
+    hall.innerHTML="<h2>🏆 Hall da Fama Mensal</h2>";
     snapshot.forEach(doc=>{
-      const d = doc.data();
-      hall.innerHTML += `
-        <div class="card">
-          <h3>${d.month}</h3>
-          <p><b>${d.artist}</b> - ${d.title}</p>
-          <p>Empresa: ${d.company || "-"}</p>
-          <p>Pontos: ${d.points}</p>
-        </div>
-      `;
+      const d=doc.data();
+      hall.innerHTML+=`
+      <div class="card">
+      <h3>${d.month}</h3>
+      <p><b>${d.artist}</b> - ${d.title}</p>
+      <p>Empresa: ${d.company||"-"}</p>
+      <p>Pontos: ${d.points}</p>
+      </div>`;
     });
   });
 }
 
-/* ========================= */
 /* CONFETE */
-/* ========================= */
-
 function launchConfetti(){
-  const duration = 3000;
-  const end = Date.now() + duration;
-
-  const interval = setInterval(()=>{
-    if(Date.now() > end) return clearInterval(interval);
-
-    confetti({
-      particleCount: 6,
-      spread: 70,
-      origin: { y: 0.6 }
-    });
-  },150);
+  confetti({particleCount:150,spread:100,origin:{y:0.6}});
 }
 
-/* ========================= */
-/* REMOVER MVs > 30 DIAS */
-/* ========================= */
-
-async function removeOldMVs(){
-  const now = new Date();
-  const snapshot = await db.collection("mvs").get();
-
-  snapshot.forEach(doc=>{
-    const data = doc.data();
-    if(!data.createdAt) return;
-
-    const diffDays = (now - data.createdAt.toDate())/(1000*60*60*24);
-    if(diffDays > 30){
-      doc.ref.delete();
-    }
-  });
-}
-
-/* ========================= */
-/* RESET SEMANAL */
-/* ========================= */
-
-async function weeklyReset(){
-  const today = new Date();
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - today.getDay() + 1);
-  const weekString = monday.toISOString().split("T")[0];
-
-  const configRef = db.collection("system").doc("config");
-  const configDoc = await configRef.get();
-  if(!configDoc.exists) return;
-
-  if(configDoc.data().lastReset === weekString) return;
-
-  const snapshot = await db.collection("mvs")
-    .orderBy("points","desc")
-    .get();
-
-  let ranking = [];
-  let position = 1;
-
-  for(const doc of snapshot.docs){
-    const d = doc.data();
-
-    ranking.push({
-      artist:d.artist,
-      title:d.title,
-      company:d.company,
-      points:d.points,
-      position
-    });
-
-    await doc.ref.update({
-      points:0,
-      trophy: position===1
-    });
-
-    position++;
+/* RESET SEMANAL + CONFIG */
+async function ensureConfig(){
+  const ref=db.collection("system").doc("config");
+  const doc=await ref.get();
+  if(!doc.exists){
+    await ref.set({lastReset:"",lastMonthly:""});
   }
-
-  await db.collection("weeklyCharts").doc(weekString).set({
-    week:weekString,
-    ranking,
-    createdAt:firebase.firestore.FieldValue.serverTimestamp()
-  });
-
-  await configRef.update({ lastReset:weekString });
 }
+ensureConfig();
 
-/* ========================= */
-/* HALL DA FAMA MENSAL */
-/* ========================= */
-
-async function monthlyHallOfFame(){
-  const now = new Date();
-  const monthString = now.getFullYear()+"-"+(now.getMonth()+1);
-
-  const configRef = db.collection("system").doc("config");
-  const configDoc = await configRef.get();
-  if(!configDoc.exists) return;
-
-  if(configDoc.data().lastMonthly === monthString) return;
-
-  const snapshot = await db.collection("mvs")
-    .orderBy("points","desc")
-    .limit(1)
-    .get();
-
-  if(snapshot.empty) return;
-
-  const winner = snapshot.docs[0].data();
-
-  await db.collection("hallOfFame").doc(monthString).set({
-    month:monthString,
-    artist:winner.artist,
-    title:winner.title,
-    company:winner.company,
-    points:winner.points,
-    createdAt:firebase.firestore.FieldValue.serverTimestamp()
-  });
-
-  await configRef.update({ lastMonthly:monthString });
-}
-
-removeOldMVs();
-weeklyReset();
-monthlyHallOfFame();
-
-/* ========================= */
 /* VOTAR */
-/* ========================= */
-
 async function vote(id,value){
-  const ref = db.collection("mvs").doc(id);
-  const doc = await ref.get();
-
-  await ref.update({
-    points:(doc.data().points || 0) + value
-  });
+  const ref=db.collection("mvs").doc(id);
+  const doc=await ref.get();
+  await ref.update({points:(doc.data().points||0)+value});
 }
 
-/* ========================= */
 /* CHART AO VIVO */
-/* ========================= */
-
-db.collection("mvs")
-.orderBy("points","desc")
+db.collection("mvs").orderBy("points","desc")
 .onSnapshot(snapshot=>{
   charts.innerHTML="";
   let position=1;
   let newFirst=null;
 
   snapshot.forEach(doc=>{
-    const d = doc.data();
+    const d=doc.data();
     if(position===1) newFirst=doc.id;
 
     let moveClass="";
@@ -237,41 +229,36 @@ db.collection("mvs")
     }
     lastPositions[doc.id]=position;
 
-    charts.innerHTML += `
-      <div class="card ${moveClass} ${position===1?'top1':''}">
-        <h3>#${position} ${d.artist} ${position===1?'<span class="trophy">🏆</span>':''}</h3>
-        <p><b>${d.title}</b></p>
-        <p>Empresa: ${d.company || "-"}</p>
-
-        <iframe width="100%" height="220"
-        src="https://www.youtube.com/embed/${extractID(d.url)}"
-        frameborder="0" allowfullscreen></iframe>
-
-        <p>Pontos: ${d.points || 0}</p>
-
-        <img src="like.png" class="voteImg" onclick="vote('${doc.id}',1)">
-        <img src="deslike.png" class="voteImg" onclick="vote('${doc.id}',-1)">
-      </div>
-    `;
+    charts.innerHTML+=`
+    <div class="card ${moveClass} ${position===1?'top1':''}">
+    <h3>#${position} ${d.artist} ${position===1?'🏆':''}</h3>
+    <p>${d.title}</p>
+    <p>Empresa: ${d.company||"-"}</p>
+    <iframe width="100%" height="220"
+    src="https://www.youtube.com/embed/${extractID(d.url)}"
+    frameborder="0" allowfullscreen></iframe>
+    <p>Pontos: ${d.points||0}</p>
+    <img src="like.png" class="voteImg" onclick="vote('${doc.id}',1)">
+    <img src="deslike.png" class="voteImg" onclick="vote('${doc.id}',-1)">
+    </div>`;
 
     position++;
   });
 
-  if(currentFirst && currentFirst !== newFirst){
+  if(currentFirst && currentFirst!==newFirst){
     victorySound.play();
     launchConfetti();
   }
-
-  currentFirst = newFirst;
+  currentFirst=newFirst;
 });
 
-/* ========================= */
-/* YOUTUBE ID */
-/* ========================= */
-
+/* YT ID */
 function extractID(url){
-  const regExp = /(?:youtube\.com\/.*v=|youtu\.be\/)([^&]+)/;
-  const match = url.match(regExp);
-  return match ? match[1] : "";
+  const regExp=/(?:youtube\.com\/.*v=|youtu\.be\/)([^&]+)/;
+  const match=url.match(regExp);
+  return match?match[1]:"";
 }
-      </script>
+</script>
+
+</body>
+</html>
