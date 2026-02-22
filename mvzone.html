@@ -1,163 +1,199 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>MVZONE Profissional</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #121212;
-      color: #fff;
-      text-align: center;
-    }
-    #mvList div {
-      background: #1e1e1e;
-      margin: 15px auto;
-      padding: 15px;
-      border-radius: 10px;
-      width: 320px;
-    }
-    iframe {
-      border-radius: 10px;
-    }
-    button {
-      background: none;
-      border: none;
-      cursor: pointer;
-      margin: 0 5px;
-    }
-    button img {
-      width: 32px;
-      vertical-align: middle;
-    }
-    hr {
-      border: 0;
-      border-top: 1px solid #333;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>MVZONE</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<style>
+body{font-family:Arial;background:#111;color:white;text-align:center}
+button{padding:6px 12px;margin:5px;border:none;border-radius:6px;cursor:pointer}
+input{padding:6px;margin:5px;border-radius:6px;border:none}
+.card{background:#1e1e1e;margin:15px;padding:15px;border-radius:10px}
+.rank{font-size:20px;font-weight:bold}
+.hidden{display:none}
+</style>
 </head>
 <body>
 
-  <h1>MVZONE Profissional</h1>
-  <h2>Ranking Semanal</h2>
-  <div id="mvList"></div>
+<h1>MVZONE</h1>
 
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+<div id="loginArea">
+  <h2>Entrar</h2>
+  <button onclick="enterVisitor()">Visitante</button><br>
+  <input id="companyName" placeholder="Nome da Empresa">
+  <input id="companyPass" type="password" placeholder="Senha">
+  <button onclick="enterCompany()">Entrar Empresa</button>
+</div>
 
-  <script>
-    // 🔹 Firebase config
-    const firebaseConfig = {
-      apiKey: "AIzaSyDa1Lm_bSz18M11gT0CZio-CG0mOqvBd7I",
-      authDomain: "mvzone-29363.firebaseapp.com",
-      projectId: "mvzone-29363",
-      storageBucket: "mvzone-29363.firebasestorage.app",
-      messagingSenderId: "927971258967",
-      appId: "1:927971258967:web:f6b889fe9ac8265af7e912"
-    };
+<div id="companyPanel" class="hidden">
+  <h2>Painel Empresa</h2>
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+  <h3>Cadastrar Artista</h3>
+  <input id="artistName" placeholder="Nome do Artista">
+  <button onclick="addArtist()">Cadastrar</button>
 
-    // 🔹 Autenticação anônima
-    firebase.auth().signInAnonymously()
-      .then(userCredential => {
-        window.userId = userCredential.user.uid;
-      })
-      .catch(error => console.error("Erro auth:", error));
+  <h3>Adicionar MV</h3>
+  <select id="artistSelect"></select><br>
+  <input id="mvLink" placeholder="Link do YouTube">
+  <button onclick="addMV()">Adicionar MV</button>
 
-    // 🔹 Função votar
-    function votar(mvId, tipo) {
-      if (!window.userId) return alert("Aguarde autenticação...");
+  <h3>Seus MVs</h3>
+  <div id="myMVs"></div>
+</div>
 
-      const voteRef = db.collection("votes");
+<h2>Ranking</h2>
+<div id="mvList"></div>
 
-      voteRef.where("mvId", "==", mvId)
-             .where("userId", "==", window.userId)
-             .get()
-             .then(snapshot => {
-               if (!snapshot.empty) {
-                 alert("Você já votou nesse MV!");
-                 return;
-               }
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDa1Lm_bSz18M11gT0CZio-CG0mOqvBd7I",
+  authDomain: "mvzone-29363.firebaseapp.com",
+  projectId: "mvzone-29363"
+};
 
-               // Adiciona voto
-               voteRef.add({
-                 mvId: mvId,
-                 userId: window.userId,
-                 type: tipo,
-                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
-               });
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-               // Atualiza contagem de likes/dislikes e score
-               const mvRef = db.collection("mvzone").doc(mvId);
-               if(tipo === "like"){
-                 mvRef.update({
-                   likes: firebase.firestore.FieldValue.increment(1),
-                   score: firebase.firestore.FieldValue.increment(1)
-                 });
-               } else {
-                 mvRef.update({
-                   dislikes: firebase.firestore.FieldValue.increment(1),
-                   score: firebase.firestore.FieldValue.increment(-1)
-                 });
-               }
-             });
-    }
+let currentUser = null;
+let userVoteId = localStorage.getItem("voteId") || crypto.randomUUID();
+localStorage.setItem("voteId", userVoteId);
 
-    // 🔹 Carregar MVs ativos e ranking semanal
-    function carregarMVs() {
-      const now = new Date();
+function enterVisitor(){
+  currentUser = {type:"visitor"};
+  document.getElementById("loginArea").classList.add("hidden");
+}
 
-      db.collection("mvzone")
-        .orderBy("score", "desc")
-        .onSnapshot(snapshot => {
-          const container = document.getElementById("mvList");
-          container.innerHTML = "";
+function enterCompany(){
+  const name = document.getElementById("companyName").value;
+  const pass = document.getElementById("companyPass").value;
+  if(!name || !pass) return alert("Preencha tudo");
 
-          snapshot.forEach(doc => {
-            const data = doc.data();
-            const mvId = doc.id;
+  currentUser = {type:"company", name:name};
+  document.getElementById("loginArea").classList.add("hidden");
+  document.getElementById("companyPanel").classList.remove("hidden");
+  loadArtists();
+  loadMyMVs();
+}
 
-            // Remove MV se expirou (30 dias)
-            const expiresAt = data.expiresAt ? data.expiresAt.toDate() : null;
-            if (expiresAt && now > expiresAt) {
-              db.collection("mvzone").doc(mvId).delete();
-              return;
-            }
+function addArtist(){
+  const artist = document.getElementById("artistName").value;
+  if(!artist) return;
+  db.collection("artists").add({
+    name:artist,
+    company:currentUser.name
+  });
+  loadArtists();
+}
 
-            // Pega videoId do YouTube
-            const videoId = data.youtubeUrl.includes("youtu.be/")
-                              ? data.youtubeUrl.split("youtu.be/")[1].split("?")[0]
-                              : data.youtubeUrl.split("v=")[1].split("&")[0];
+function loadArtists(){
+  db.collection("artists")
+  .where("company","==",currentUser.name)
+  .onSnapshot(snap=>{
+    const select = document.getElementById("artistSelect");
+    select.innerHTML="";
+    snap.forEach(doc=>{
+      select.innerHTML+=`<option>${doc.data().name}</option>`;
+    });
+  });
+}
 
-            // Cria bloco MV
-            const mv = document.createElement("div");
-            mv.innerHTML = `
-              <h3>${data.artist}</h3>
-              <p>Empresa: ${data.empresaId}</p>
-              <iframe width="300" height="170"
-                src="https://www.youtube.com/embed/${videoId}"
-                frameborder="0" allowfullscreen>
-              </iframe>
-              <p>Likes: ${data.likes || 0} | Dislikes: ${data.dislikes || 0}</p>
-              <button onclick="votar('${mvId}', 'like')">
-                <img src="like.png" alt="Like">
-              </button>
-              <button onclick="votar('${mvId}', 'dislike')">
-                <img src="dislike.png" alt="Dislike">
-              </button>
-              <hr>
-            `;
-            container.appendChild(mv);
-          });
-        });
-    }
+async function addMV(){
+  const link = document.getElementById("mvLink").value;
+  const artist = document.getElementById("artistSelect").value;
+  if(!link || !artist) return;
 
-    carregarMVs();
-  </script>
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(oneWeekAgo.getDate()-7);
 
+  const check = await db.collection("mvzone")
+  .where("company","==",currentUser.name)
+  .where("timestamp",">",oneWeekAgo)
+  .get();
+
+  if(!check.empty) return alert("Você só pode postar 1 MV por semana");
+
+  const expires = new Date();
+  expires.setDate(expires.getDate()+30);
+
+  db.collection("mvzone").add({
+    artist,
+    company:currentUser.name,
+    url:link,
+    likes:0,
+    dislikes:0,
+    score:0,
+    timestamp:new Date(),
+    expiresAt:expires
+  });
+}
+
+function removeMV(id){
+  db.collection("mvzone").doc(id).delete();
+}
+
+function loadMyMVs(){
+  db.collection("mvzone")
+  .where("company","==",currentUser.name)
+  .onSnapshot(snap=>{
+    const div = document.getElementById("myMVs");
+    div.innerHTML="";
+    snap.forEach(doc=>{
+      div.innerHTML+=`
+        <div>
+          ${doc.data().artist}
+          <button onclick="removeMV('${doc.id}')">Remover</button>
+        </div>
+      `;
+    });
+  });
+}
+
+function vote(id,value){
+  const voteRef = db.collection("votes").doc(id+"_"+userVoteId);
+  voteRef.get().then(doc=>{
+    if(doc.exists) return alert("Você já votou");
+    voteRef.set({voted:true});
+
+    const mvRef = db.collection("mvzone").doc(id);
+    mvRef.update({
+      score:firebase.firestore.FieldValue.increment(value),
+      likes: value==1 ? firebase.firestore.FieldValue.increment(1) : firebase.firestore.FieldValue.increment(0),
+      dislikes: value==-1 ? firebase.firestore.FieldValue.increment(1) : firebase.firestore.FieldValue.increment(0)
+    });
+  });
+}
+
+function loadMVs(){
+  db.collection("mvzone")
+  .orderBy("score","desc")
+  .onSnapshot(snap=>{
+    const list = document.getElementById("mvList");
+    list.innerHTML="";
+    let position=1;
+    snap.forEach(doc=>{
+      const d=doc.data();
+      if(new Date(d.expiresAt.seconds*1000) < new Date()){
+        db.collection("mvzone").doc(doc.id).delete();
+        return;
+      }
+      list.innerHTML+=`
+        <div class="card">
+          <div class="rank">#${position}</div>
+          <h3>${d.artist}</h3>
+          <p>${d.company}</p>
+          <iframe width="300" height="200" src="${d.url.replace("watch?v=","embed/")}" frameborder="0"></iframe>
+          <p>Score: ${d.score}</p>
+          <button onclick="vote('${doc.id}',1)">👍 ${d.likes}</button>
+          <button onclick="vote('${doc.id}',-1)">👎 ${d.dislikes}</button>
+        </div>
+      `;
+      position++;
+    });
+  });
+}
+
+loadMVs();
+</script>
 </body>
 </html>
