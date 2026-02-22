@@ -11,104 +11,55 @@
 body{
   margin:0;
   font-family:Arial, sans-serif;
-  background:#f0f0f0;
+  background:#0f0f0f;
+  color:white;
 }
-
 header{
   background:#111;
   padding:10px;
   text-align:center;
 }
-
-.logo{height:55px;}
-
-#newsContainer{
-  display:flex;
-  flex-wrap:wrap;
-  justify-content:center;
-  padding:20px;
-  gap:15px;
-}
-
-/* POST-ITS */
-.postIt{
-  width:280px;
-  min-height:200px;
-  padding:15px;
-  border-radius:12px;
-  box-shadow:0 5px 15px rgba(0,0,0,0.2);
-  position:relative;
-  font-size:14px;
-  color:#111;
-  white-space:pre-wrap;
-  cursor:pointer;
-  transition:0.3s;
-}
-
-.postIt:hover{
-  transform:scale(1.03);
-}
-
-.yellow{background:#fff176;}
-.pink{background:#ff8a80;}
-.green{background:#b9f6ca;}
-.orange{background:#ffd180;}
-
-/* ADMIN PANEL */
-#adminPanel{
-  max-width:500px;
-  margin:20px auto;
-  background:#181818;
-  color:white;
-  padding:15px;
-  border-radius:12px;
-}
-
-#adminPanel input, #adminPanel textarea{
-  width:100%;
-  margin-bottom:10px;
-  padding:8px;
-  border-radius:6px;
-  border:none;
-}
-
-#adminPanel button{
-  background:#ff0055;
-  color:white;
-  border:none;
-  padding:10px 15px;
-  border-radius:6px;
-  cursor:pointer;
-}
-
-.hidden{display:none;}
+.logo{height:60px; margin-bottom:10px;}
+#loginBox, #newsForm{margin:20px; text-align:center;}
+input, textarea{padding:8px; margin:5px; width:80%; border-radius:6px; border:none;}
+button{padding:8px 15px; margin:5px; border:none; border-radius:6px; background:#ff0055; color:white; cursor:pointer;}
+#newsContainer{display:flex; flex-wrap:wrap; justify-content:center; margin:20px;}
+.postIt{width:300px; min-height:150px; margin:10px; padding:15px; border-radius:12px; position:relative; color:#111; font-weight:bold; transition:0.3s; box-shadow:0 4px 6px rgba(0,0,0,0.3);}
+.postIt:hover{transform:scale(1.03);}
+.yellow{background:#fffa65;}
+.pink{background:#ff8ad2;}
+.green{background:#8aff8a;}
+.orange{background:#ffa54a;}
+.postImg{width:100%; margin-top:10px; border-radius:8px;}
+.editBtn, .deleteBtn{position:absolute; top:5px; cursor:pointer; background:#ff0055; color:white; padding:3px 8px; border-radius:5px; font-size:12px;}
+.editBtn{right:35px;}
+.deleteBtn{right:5px;}
 </style>
 </head>
 <body>
 
 <header>
   <img src="logo.png" class="logo">
+  <h2>R-net News</h2>
 </header>
 
-<!-- ADMIN LOGIN -->
-<div id="adminLogin" style="text-align:center; padding:20px;">
-  <p>Digite seu UID para acessar o painel:</p>
-  <input type="text" id="uidInput" placeholder="Seu UID">
-  <button onclick="checkAdmin()">Entrar</button>
+<div id="loginBox">
+  <h3>Entre com seu UID ou continue como visitante</h3>
+  <input type="text" id="uidInput" placeholder="Seu UID aqui">
+  <button onclick="login()">Login</button>
+  <button onclick="visitor()">Entrar como visitante</button>
 </div>
 
-<!-- ADMIN PANEL -->
-<div id="adminPanel" class="hidden">
-  <h2>Painel de Notícias</h2>
-  <input type="text" id="newsTitle" placeholder="Título da notícia">
-  <input type="date" id="newsDate">
-  <input type="time" id="newsTime">
-  <textarea id="newsContent" placeholder="Escreva a notícia aqui..."></textarea>
+<div id="newsForm" class="hidden">
+  <h3>Postar notícia</h3>
+  <input type="text" id="newsTitle" placeholder="Nome da notícia">
+  <input type="text" id="newsDate" placeholder="Data (ex: 22/02/2026)">
+  <input type="text" id="newsTime" placeholder="Hora (ex: 23:30)">
+  <textarea id="newsContent" placeholder="Digite sua notícia aqui"></textarea>
   <input type="text" id="newsImage" placeholder="URL da imagem (opcional)">
-  <button onclick="addNews()">Publicar Notícia</button>
+  <button onclick="postNews()">Postar notícia</button>
 </div>
 
-<!-- MURAL DE NOTÍCIAS -->
 <div id="newsContainer"></div>
 
 <script>
@@ -120,99 +71,122 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// UID ADMIN
-const adminUID = "ITxtdznlxEeXhDoSFcfjYCge6gn1";
+const ADMIN_UID = "jy7EFx66yFYPVEi5XZaSVYcyWrw2"; // Seu UID
+let currentUser = null;
 
 // =====================
-// CHECK ADMIN
+// LOGIN
 // =====================
-function checkAdmin(){
+function login(){
   const uid = document.getElementById("uidInput").value.trim();
-  if(uid === adminUID){
-    document.getElementById("adminLogin").classList.add("hidden");
-    document.getElementById("adminPanel").classList.remove("hidden");
-  }else{
-    alert("UID incorreto! Apenas o administrador pode postar.");
+  if(uid === ADMIN_UID){
+    currentUser = uid;
+    document.getElementById("loginBox").classList.add("hidden");
+    document.getElementById("newsForm").classList.remove("hidden");
+    loadNews();
+  } else{
+    alert("UID inválido!");
   }
+}
+function visitor(){
+  currentUser = "visitor";
+  document.getElementById("loginBox").classList.add("hidden");
+  loadNews();
 }
 
 // =====================
-// ADICIONAR NOTÍCIA
-// =====================
-function addNews(){
-  const title = document.getElementById("newsTitle").value.trim();
-  const date = document.getElementById("newsDate").value;
-  const time = document.getElementById("newsTime").value;
-  const content = document.getElementById("newsContent").value.trim();
-  const image = document.getElementById("newsImage").value.trim();
-
-  if(!title || !date || !time || !content){
-    alert("Preencha todos os campos!");
-    return;
-  }
-
-  db.collection("news").add({
-    title, date, time, content, image,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  });
-
-  document.getElementById("newsTitle").value = "";
-  document.getElementById("newsDate").value = "";
-  document.getElementById("newsTime").value = "";
-  document.getElementById("newsContent").value = "";
-  document.getElementById("newsImage").value = "";
-}
-
-// =====================
-// REMOVER NOTÍCIAS
-// =====================
-function removeNews(id){
-  if(confirm("Tem certeza que deseja remover esta notícia?")){
-    db.collection("news").doc(id).delete();
-  }
-}
-
-// =====================
-// EDITAR NOTÍCIAS
-// =====================
-function editNews(id, current){
-  const newContent = prompt("Edite o conteúdo da notícia:", current.content);
-  if(newContent !== null){
-    db.collection("news").doc(id).update({content:newContent});
-  }
-}
-
-// =====================
-// CARREGAR NOTÍCIAS
+// POSTAR NOTÍCIA
 // =====================
 function randomColor(){
   const colors = ["yellow","pink","green","orange"];
   return colors[Math.floor(Math.random()*colors.length)];
 }
 
-db.collection("news")
-.orderBy("createdAt","desc")
-.onSnapshot(snapshot=>{
-  const container = document.getElementById("newsContainer");
-  container.innerHTML="";
-  snapshot.forEach(doc=>{
-    const d = doc.data();
-    const colorClass = randomColor();
-    let html = `<div class="postIt ${colorClass}">`;
-    if(d.image){
-      html += `<img src="${d.image}" style="width:100%; border-radius:8px; margin-bottom:8px;">`;
-    }
-    html += `<h3>${d.title}</h3>`;
-    html += `<p><strong>${d.date} ${d.time}</strong></p>`;
-    html += `<p>${d.content}</p>`;
-    if(document.getElementById("adminPanel").classList.contains("hidden")===false){
-      html += `<button onclick="editNews('${doc.id}', ${JSON.stringify(d)})">Editar</button>`;
-      html += `<button onclick="removeNews('${doc.id}')">Remover</button>`;
-    }
-    html += `</div>`;
-    container.innerHTML += html;
+async function postNews(){
+  const title = document.getElementById("newsTitle").value;
+  const date = document.getElementById("newsDate").value;
+  const time = document.getElementById("newsTime").value;
+  const content = document.getElementById("newsContent").value;
+  const image = document.getElementById("newsImage").value;
+
+  if(!title || !date || !time || !content) return alert("Preencha todos os campos!");
+
+  await db.collection("news").add({
+    title,
+    date,
+    time,
+    content,
+    image,
+    color: randomColor(),
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
   });
-});
+
+  // Limpar form
+  document.getElementById("newsTitle").value="";
+  document.getElementById("newsDate").value="";
+  document.getElementById("newsTime").value="";
+  document.getElementById("newsContent").value="";
+  document.getElementById("newsImage").value="";
+}
+
+// =====================
+// CARREGAR NOTÍCIAS
+// =====================
+function loadNews(){
+  db.collection("news").orderBy("createdAt","desc").onSnapshot(snapshot=>{
+    const container = document.getElementById("newsContainer");
+    container.innerHTML="";
+
+    snapshot.forEach(doc=>{
+      const d = doc.data();
+      const post = document.createElement("div");
+      post.classList.add("postIt", d.color);
+      post.innerHTML = `<h4>${d.title}</h4><small>${d.date} ${d.time}</small><p>${d.content}</p>`;
+      if(d.image) post.innerHTML += `<img src="${d.image}" class="postImg">`;
+
+      if(currentUser === ADMIN_UID){
+        const editBtn = document.createElement("button");
+        editBtn.innerText="Editar";
+        editBtn.classList.add("editBtn");
+        editBtn.onclick = ()=> editNews(doc.id, d);
+        post.appendChild(editBtn);
+
+        const delBtn = document.createElement("button");
+        delBtn.innerText="Remover";
+        delBtn.classList.add("deleteBtn");
+        delBtn.onclick = ()=> removeNews(doc.id);
+        post.appendChild(delBtn);
+      }
+
+      container.appendChild(post);
+    });
+  });
+}
+
+// =====================
+// EDITAR / REMOVER
+// =====================
+function editNews(id, data){
+  const newTitle = prompt("Título:", data.title);
+  const newDate = prompt("Data:", data.date);
+  const newTime = prompt("Hora:", data.time);
+  const newContent = prompt("Conteúdo:", data.content);
+  const newImage = prompt("URL da imagem:", data.image||"");
+
+  db.collection("news").doc(id).update({
+    title: newTitle,
+    date: newDate,
+    time: newTime,
+    content: newContent,
+    image: newImage
+  });
+}
+
+function removeNews(id){
+  if(confirm("Tem certeza que deseja remover esta notícia?")){
+    db.collection("news").doc(id).delete();
+  }
+}
 </script>
 
 </body>
