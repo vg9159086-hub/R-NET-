@@ -1,140 +1,197 @@
-<!DOCTYPE html><html lang="pt">
+<!DOCTYPE html>
+<html>
 <head>
 <meta charset="UTF-8">
-<title>MV Zone</title><style>
-body{background:#111;color:#fff;font-family:Arial;text-align:center}
-.tela{display:none}
-input,button{margin:5px;padding:8px}
-.mv{border:1px solid #444;margin:10px;padding:10px}
-img.btn{width:40px;cursor:pointer}
-</style></head>
-<body><h1>MV Zone</h1><!-- TELA INICIAL --><div id="inicio" class="tela">
-<h3>Bem-vindo</h3>
-<button onclick="mostrarLogin()">Entrar / Registrar</button>
-<button onclick="abrirCharts()">Ver Charts</button>
-</div><!-- LOGIN --><div id="login" class="tela">
-<h3>Login</h3>
-<input id="email" placeholder="Email"><br>
-<input id="senha" type="password" placeholder="Senha"><br><select id="tipo">
-<option value="visitante">Visitante</option>
-<option value="empresa">Empresa</option>
-</select><br><input id="empresaNome" placeholder="Nome da Empresa (se empresa)"><br>
+<title>MV Zone</title>
 
-<button onclick="registrar()">Registrar</button>
-<button onclick="entrar()">Entrar</button><br>
-<button onclick="voltarInicio()">Voltar</button>
+<style>
+body { font-family: Arial; background:#111; color:white; text-align:center; }
+input, button { margin:5px; padding:8px; }
+.mv { background:#1c1c1c; padding:10px; margin:10px; border-radius:10px; }
+.rank { font-size:20px; color:#00ffcc; }
+.vote img { width:30px; cursor:pointer; margin:5px; }
+.comment { background:#222; margin:5px; padding:5px; border-radius:5px; }
+</style>
+</head>
+<body>
 
-</div><!-- CHARTS --><div id="charts" class="tela">
-<button onclick="logout()">Sair</button>
-<h2>Chart Semanal</h2>
-<div id="lista"></div>
-</div><script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, getDoc, setDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+<h1>MV ZONE</h1>
 
+<div id="loginArea">
+<h3>Entrar</h3>
+<input id="companyName" placeholder="Empresa">
+<input id="companyPass" type="password" placeholder="Senha">
+<button onclick="loginCompany()">Entrar como Empresa</button>
+<button onclick="enterVisitor()">Entrar como Visitante</button>
+</div>
+
+<div id="companyArea" style="display:none;">
+<h3>Painel da Empresa</h3>
+<input id="artistInput" placeholder="Artista">
+<input id="mvLinkInput" placeholder="Link do YouTube">
+<button onclick="addMV()">Adicionar MV</button>
+</div>
+
+<h2>Charts</h2>
+<div id="mvList"></div>
+
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+
+<script>
 const firebaseConfig = {
-apiKey: "AIzaSyDa1Lm_bSz18M11gT0CZio-CG0mOqvBd7I",
+  apiKey: "AIzaSyDa1Lm_bSz18M11gT0CZio-CG0mOqvBd7I",
   authDomain: "mvzone-29363.firebaseapp.com",
   projectId: "mvzone-29363",
-};
+  };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth();
-const db = getFirestore();
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-let userData=null;
+let currentCompany = null;
+let isCompany = false;
 
-// CONTROLE DE TELAS
-function mostrarTela(id){
-document.querySelectorAll(".tela").forEach(t=>t.style.display="none");
-document.getElementById(id).style.display="block";
+// Entrar visitante
+function enterVisitor(){
+  document.getElementById("loginArea").style.display="none";
 }
 
-window.mostrarLogin = ()=>mostrarTela("login");
-window.voltarInicio = ()=>mostrarTela("inicio");
-window.abrirCharts = ()=>{
-mostrarTela("charts");
-carregarMVs();
+// Login empresa
+async function loginCompany(){
+  const name = document.getElementById("companyName").value;
+  const pass = document.getElementById("companyPass").value;
+
+  const doc = await db.collection("companies").doc(name).get();
+
+  if(doc.exists){
+    if(doc.data().password === pass){
+      currentCompany = name;
+      isCompany = true;
+      document.getElementById("loginArea").style.display="none";
+      document.getElementById("companyArea").style.display="block";
+    }else{
+      alert("Senha errada");
+    }
+  }else{
+    await db.collection("companies").doc(name).set({
+      password: pass,
+      lastPost: 0
+    });
+    alert("Empresa criada, entre novamente");
+  }
 }
 
-// REGISTRAR
-window.registrar = async ()=>{
-let cred=await createUserWithEmailAndPassword(auth,email.value,senha.value);
+// Converter link YouTube
+function convertLink(url){
+  let id = "";
+  if(url.includes("youtu.be/")){
+    id = url.split("youtu.be/")[1].split("?")[0];
+  }else if(url.includes("v=")){
+    id = url.split("v=")[1].split("&")[0];
+  }
+  return "https://www.youtube.com/embed/" + id;
+}
 
-await setDoc(doc(db,"users",cred.user.uid),{
-tipo:tipo.value,
-empresa:empresaNome.value
+// Adicionar MV (1 por semana)
+async function addMV(){
+  const artist = document.getElementById("artistInput").value;
+  const link = document.getElementById("mvLinkInput").value;
+
+  const companyDoc = await db.collection("companies").doc(currentCompany).get();
+  const lastPost = companyDoc.data().lastPost || 0;
+  const now = Date.now();
+
+  if(now - lastPost < 7*24*60*60*1000){
+    alert("Você só pode postar 1 MV por semana");
+    return;
+  }
+
+  await db.collection("mvs").add({
+    artist: artist,
+    url: convertLink(link),
+    company: currentCompany,
+    likes: 0,
+    created: now
+  });
+
+  await db.collection("companies").doc(currentCompany).update({
+    lastPost: now
+  });
+
+  alert("MV enviado!");
+}
+
+// Votar
+async function vote(id, value){
+  const ref = db.collection("mvs").doc(id);
+  const doc = await ref.get();
+  const likes = doc.data().likes + value;
+  await ref.update({likes: likes});
+}
+
+// Comentário
+async function addComment(mvId){
+  const text = prompt("Comentário:");
+  if(!text) return;
+
+  const name = isCompany ? currentCompany : "Visitante";
+
+  await db.collection("comments").add({
+    mvId: mvId,
+    name: name,
+    text: text,
+    created: Date.now()
+  });
+}
+
+// Carregar MVs
+db.collection("mvs").orderBy("likes","desc").onSnapshot(snapshot=>{
+  const container = document.getElementById("mvList");
+  container.innerHTML="";
+  let rank = 1;
+
+  snapshot.forEach(doc=>{
+    const data = doc.data();
+    const mv = document.createElement("div");
+    mv.className="mv";
+
+    mv.innerHTML=`
+      <div class="rank">#${rank}</div>
+      <h3>${data.artist}</h3>
+      <p>${data.company}</p>
+      <iframe width="300" height="170" src="${data.url}" allowfullscreen></iframe>
+      <div class="vote">
+        <img src="like.png" onclick="vote('${doc.id}',1)">
+        <img src="deslike.png" onclick="vote('${doc.id}',-1)">
+      </div>
+      <p>Pontos: ${data.likes}</p>
+      <button onclick="addComment('${doc.id}')">Comentar</button>
+      <div id="comments-${doc.id}"></div>
+    `;
+
+    container.appendChild(mv);
+
+    // carregar comentários
+    db.collection("comments")
+      .where("mvId","==",doc.id)
+      .orderBy("created")
+      .onSnapshot(cSnap=>{
+        const cDiv = document.getElementById("comments-"+doc.id);
+        if(!cDiv) return;
+        cDiv.innerHTML="";
+        cSnap.forEach(c=>{
+          const d = c.data();
+          const el = document.createElement("div");
+          el.className="comment";
+          el.innerHTML=`<b>${d.name}:</b> ${d.text}`;
+          cDiv.appendChild(el);
+        });
+      });
+
+    rank++;
+  });
 });
+</script>
 
-alert("Conta criada!");
-}
-
-// LOGIN
-window.entrar = ()=>{
-signInWithEmailAndPassword(auth,email.value,senha.value)
-.then(()=>mostrarTela("charts"))
-.catch(()=>alert("Erro no login"));
-}
-
-// LOGOUT
-window.logout = ()=>{
-signOut(auth);
-mostrarTela("inicio");
-}
-
-// NÃO PULAR TELA AUTOMATICAMENTE
-onAuthStateChanged(auth, async(user)=>{
-if(user){
-let docu=await getDoc(doc(db,"users",user.uid));
-userData=docu.data();
-}
-});
-
-// CARREGAR MVs
-async function carregarMVs(){
-let lista=document.getElementById("lista");
-lista.innerHTML="";
-
-let semana=Date.now()-7*24*60*60*1000;
-
-let q=query(collection(db,"mvs"),orderBy("likes","desc"));
-let snap=await getDocs(q);
-
-let rank=1;
-
-snap.forEach(docu=>{
-let mv=docu.data();
-if(mv.data<semana) return;
-
-let div=document.createElement("div");
-div.className="mv";
-
-div.innerHTML=`
-<h3>#${rank} - ${mv.artist} (${mv.empresa})</h3>
-<iframe width="300" height="170" src="${mv.link}" allowfullscreen></iframe><br>
-<img src="like.png" class="btn" onclick="like('${docu.id}',1)">
-<img src="deslike.png" class="btn" onclick="like('${docu.id}',-1)">
-<p>Pontos: ${mv.likes}</p>
-`;
-
-lista.appendChild(div);
-rank++;
-});
-}
-
-// LIKE
-window.like = async(id,valor)=>{
-let ref=doc(db,"mvs",id);
-let snap=await getDoc(ref);
-await updateDoc(ref,{
-likes:snap.data().likes + valor
-});
-carregarMVs();
-}
-
-// INICIAR NA TELA INICIAL
-mostrarTela("inicio");
-
-</script></body>
+</body>
 </html>
