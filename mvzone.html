@@ -3,128 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <title>MVZONE</title>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-<style>
-body{
-  margin:0;
-  font-family:Arial;
-  background:#0f0f0f;
-  color:white;
-}
-
-header{
-  background:#111;
-  padding:15px;
-  text-align:center;
-  border-bottom:2px solid #222;
-}
-
-.logo{
-  height:60px;
-}
-
-button{
-  background:#ff0055;
-  color:white;
-  border:none;
-  padding:8px 14px;
-  cursor:pointer;
-  border-radius:6px;
-}
-
-button:hover{
-  opacity:0.8;
-}
-
-.card{
-  background:#181818;
-  padding:15px;
-  margin:15px;
-  border-radius:12px;
-  transition:0.3s;
-}
-
-.card:hover{
-  transform:scale(1.02);
-}
-
-.hidden{
-  display:none;
-}
-
-.trophy{
-  font-size:22px;
-  color:gold;
-}
-
-input{
-  padding:8px;
-  margin:5px;
-  border-radius:6px;
-  border:none;
-}
-
-#rulesPage{
-  position:fixed;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
-  background:#000;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  align-items:center;
-  text-align:center;
-  padding:20px;
-  z-index:999;
-}
-</style>
-</head>
-<body>
-
-<div id="rulesPage">
-  <img src="logo.png" class="logo">
-  <h2>MVZONE Rules</h2>
-  <p>
-  • Unlimited voting allowed<br>
-  • Use wisely and support your artist<br>
-  • Give a chance to all MVs here<br>
-  • If they're here, they were well produced!
-  </p>
-  <button onclick="enterSite()">Enter MVZONE</button>
-</div>
-
-<header>
-  <img src="logo.png" class="logo">
-  <div>
-    <button onclick="showCharts()">Charts</button>
-    <button onclick="showHistory()">History</button>
-    <button onclick="showLogin()">Company Login</button>
-  </div>
-</header>
-
-<div id="charts"></div>
-
-<div id="history" class="hidden"></div>
-
-<div id="loginPage" class="hidden" style="padding:20px;">
-  <h2>Company Login</h2>
-  <input id="companyName" placeholder="Company Name">
-  <input id="companyPass" type="password" placeholder="Password">
-  <button onclick="login()">Login</button>
-</div>
-
-<div id="adminPanel" class="hidden" style="padding:20px;">
-  <h2>Company Panel</h2>
-  <input id="artist" placeholder="Artist Name">
-  <input id="title" placeholder="MV Title">
-  <input id="url" placeholder="YouTube Link">
-  <button onclick="addMV()">Add MV</button>
-  <button onclick="logout()">Logout</button>
-</div>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
 <script>
 const firebaseConfig = {
@@ -136,108 +16,108 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-let loggedCompany = null;
+let lastPositions = {};
+let currentFirst = null;
+const victorySound = new Audio("victory.mp3");
 
-function enterSite(){
-  document.getElementById("rulesPage").style.display="none";
-  loadMVs();
+/* ========================= */
+/* REGRAS */
+/* ========================= */
+
+function acceptRules(){
+  localStorage.setItem("rulesAccepted","yes");
+  document.getElementById("rulesScreen").style.display="none";
 }
 
+if(localStorage.getItem("rulesAccepted")==="yes"){
+  document.getElementById("rulesScreen").style.display="none";
+}
+
+/* ========================= */
+/* NAVEGAÇÃO */
+/* ========================= */
+
 function showCharts(){
-  document.getElementById("charts").classList.remove("hidden");
-  document.getElementById("history").classList.add("hidden");
-  document.getElementById("loginPage").classList.add("hidden");
-  document.getElementById("adminPanel").classList.add("hidden");
+  charts.classList.remove("hidden");
+  history.classList.add("hidden");
+  hall.classList.add("hidden");
 }
 
 function showHistory(){
-  document.getElementById("charts").classList.add("hidden");
-  document.getElementById("history").classList.remove("hidden");
-  loadHistory();
+  charts.classList.add("hidden");
+  history.classList.remove("hidden");
+  hall.classList.add("hidden");
 }
 
-function showLogin(){
-  document.getElementById("loginPage").classList.remove("hidden");
-}
+function showHall(){
+  charts.classList.add("hidden");
+  history.classList.add("hidden");
+  hall.classList.remove("hidden");
 
-async function login(){
-  const name = companyName.value;
-  const pass = companyPass.value;
+  hall.innerHTML = "<h2>🏆 Hall da Fama Mensal</h2>";
 
-  const doc = await db.collection("companies").doc(name).get();
-  if(doc.exists && doc.data().password === pass){
-    loggedCompany = name;
-    loginPage.classList.add("hidden");
-    adminPanel.classList.remove("hidden");
-  } else {
-    alert("Wrong login");
-  }
-}
+  db.collection("hallOfFame")
+  .orderBy("createdAt","desc")
+  .onSnapshot(snapshot=>{
+    hall.innerHTML = "<h2>🏆 Hall da Fama Mensal</h2>";
 
-function logout(){
-  loggedCompany = null;
-  adminPanel.classList.add("hidden");
-}
-
-async function addMV(){
-  const artist = document.getElementById("artist").value;
-  const title = document.getElementById("title").value;
-  const url = document.getElementById("url").value;
-
-  await db.collection("mvs").add({
-    artist,
-    title,
-    company: loggedCompany,
-    url,
-    points:0,
-    trophy:false
-  });
-
-  alert("MV Added!");
-  loadMVs();
-}
-
-async function vote(id,value){
-  const ref = db.collection("mvs").doc(id);
-  const doc = await ref.get();
-  const newPoints = doc.data().points + value;
-  await ref.update({points:newPoints});
-  loadMVs();
-}
-
-async function loadMVs(){
-  checkWeeklyReset();
-
-  const snap = await db.collection("mvs").orderBy("points","desc").get();
-  charts.innerHTML="";
-
-  let position=1;
-
-  snap.forEach(doc=>{
-    const d = doc.data();
-    charts.innerHTML += `
-      <div class="card">
-        <h3>#${position} ${d.artist} ${d.trophy ? '<span class="trophy">🏆</span>' : ''}</h3>
-        <p>${d.title}</p>
-        <iframe width="100%" height="250"
-        src="https://www.youtube.com/embed/${extractID(d.url)}"
-        frameborder="0" allowfullscreen></iframe>
-        <p>Points: ${d.points}</p>
-        <button onclick="vote('${doc.id}',1)">👍</button>
-        <button onclick="vote('${doc.id}',-1)">👎</button>
-      </div>
-    `;
-    position++;
+    snapshot.forEach(doc=>{
+      const d = doc.data();
+      hall.innerHTML += `
+        <div class="card">
+          <h3>${d.month}</h3>
+          <p><b>${d.artist}</b> - ${d.title}</p>
+          <p>Empresa: ${d.company || "-"}</p>
+          <p>Pontos: ${d.points}</p>
+        </div>
+      `;
+    });
   });
 }
 
-function extractID(url){
-  const regExp = /(?:youtube\.com\/.*v=|youtu\.be\/)([^&]+)/;
-  const match = url.match(regExp);
-  return match ? match[1] : "";
+/* ========================= */
+/* CONFETE */
+/* ========================= */
+
+function launchConfetti(){
+  const duration = 3000;
+  const end = Date.now() + duration;
+
+  const interval = setInterval(()=>{
+    if(Date.now() > end) return clearInterval(interval);
+
+    confetti({
+      particleCount: 6,
+      spread: 70,
+      origin: { y: 0.6 }
+    });
+  },150);
 }
 
-async function checkWeeklyReset(){
+/* ========================= */
+/* REMOVER MVs > 30 DIAS */
+/* ========================= */
+
+async function removeOldMVs(){
+  const now = new Date();
+  const snapshot = await db.collection("mvs").get();
+
+  snapshot.forEach(doc=>{
+    const data = doc.data();
+    if(!data.createdAt) return;
+
+    const diffDays = (now - data.createdAt.toDate())/(1000*60*60*24);
+    if(diffDays > 30){
+      doc.ref.delete();
+    }
+  });
+}
+
+/* ========================= */
+/* RESET SEMANAL */
+/* ========================= */
+
+async function weeklyReset(){
   const today = new Date();
   const monday = new Date(today);
   monday.setDate(today.getDate() - today.getDay() + 1);
@@ -249,50 +129,149 @@ async function checkWeeklyReset(){
 
   if(configDoc.data().lastReset === weekString) return;
 
-  const snap = await db.collection("mvs").orderBy("points","desc").get();
-  let ranking=[];
-  let pos=1;
+  const snapshot = await db.collection("mvs")
+    .orderBy("points","desc")
+    .get();
 
-  for(const doc of snap.docs){
-    const data=doc.data();
+  let ranking = [];
+  let position = 1;
+
+  for(const doc of snapshot.docs){
+    const d = doc.data();
+
     ranking.push({
-      artist:data.artist,
-      points:data.points,
-      position:pos
+      artist:d.artist,
+      title:d.title,
+      company:d.company,
+      points:d.points,
+      position
     });
 
     await doc.ref.update({
-      trophy: pos===1,
-      points:0
+      points:0,
+      trophy: position===1
     });
 
-    pos++;
+    position++;
   }
 
   await db.collection("weeklyCharts").doc(weekString).set({
     week:weekString,
-    ranking
+    ranking,
+    createdAt:firebase.firestore.FieldValue.serverTimestamp()
   });
 
-  await configRef.update({
-    lastReset:weekString
+  await configRef.update({ lastReset:weekString });
+}
+
+/* ========================= */
+/* HALL DA FAMA MENSAL */
+/* ========================= */
+
+async function monthlyHallOfFame(){
+  const now = new Date();
+  const monthString = now.getFullYear()+"-"+(now.getMonth()+1);
+
+  const configRef = db.collection("system").doc("config");
+  const configDoc = await configRef.get();
+  if(!configDoc.exists) return;
+
+  if(configDoc.data().lastMonthly === monthString) return;
+
+  const snapshot = await db.collection("mvs")
+    .orderBy("points","desc")
+    .limit(1)
+    .get();
+
+  if(snapshot.empty) return;
+
+  const winner = snapshot.docs[0].data();
+
+  await db.collection("hallOfFame").doc(monthString).set({
+    month:monthString,
+    artist:winner.artist,
+    title:winner.title,
+    company:winner.company,
+    points:winner.points,
+    createdAt:firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  await configRef.update({ lastMonthly:monthString });
+}
+
+removeOldMVs();
+weeklyReset();
+monthlyHallOfFame();
+
+/* ========================= */
+/* VOTAR */
+/* ========================= */
+
+async function vote(id,value){
+  const ref = db.collection("mvs").doc(id);
+  const doc = await ref.get();
+
+  await ref.update({
+    points:(doc.data().points || 0) + value
   });
 }
 
-async function loadHistory(){
-  const snap = await db.collection("weeklyCharts").orderBy("week","desc").get();
-  history.innerHTML="";
-  snap.forEach(doc=>{
-    const d=doc.data();
-    history.innerHTML += `
-      <div class="card">
-        <h3>Week ${d.week}</h3>
-        ${d.ranking.map(r=>`<p>#${r.position} ${r.artist} (${r.points})</p>`).join("")}
+/* ========================= */
+/* CHART AO VIVO */
+/* ========================= */
+
+db.collection("mvs")
+.orderBy("points","desc")
+.onSnapshot(snapshot=>{
+  charts.innerHTML="";
+  let position=1;
+  let newFirst=null;
+
+  snapshot.forEach(doc=>{
+    const d = doc.data();
+    if(position===1) newFirst=doc.id;
+
+    let moveClass="";
+    if(lastPositions[doc.id] && lastPositions[doc.id]!==position){
+      moveClass="move";
+    }
+    lastPositions[doc.id]=position;
+
+    charts.innerHTML += `
+      <div class="card ${moveClass} ${position===1?'top1':''}">
+        <h3>#${position} ${d.artist} ${position===1?'<span class="trophy">🏆</span>':''}</h3>
+        <p><b>${d.title}</b></p>
+        <p>Empresa: ${d.company || "-"}</p>
+
+        <iframe width="100%" height="220"
+        src="https://www.youtube.com/embed/${extractID(d.url)}"
+        frameborder="0" allowfullscreen></iframe>
+
+        <p>Pontos: ${d.points || 0}</p>
+
+        <img src="like.png" class="voteImg" onclick="vote('${doc.id}',1)">
+        <img src="deslike.png" class="voteImg" onclick="vote('${doc.id}',-1)">
       </div>
     `;
-  });
-}
-</script>
 
-</body>
-</html>
+    position++;
+  });
+
+  if(currentFirst && currentFirst !== newFirst){
+    victorySound.play();
+    launchConfetti();
+  }
+
+  currentFirst = newFirst;
+});
+
+/* ========================= */
+/* YOUTUBE ID */
+/* ========================= */
+
+function extractID(url){
+  const regExp = /(?:youtube\.com\/.*v=|youtu\.be\/)([^&]+)/;
+  const match = url.match(regExp);
+  return match ? match[1] : "";
+}
+      </script>
