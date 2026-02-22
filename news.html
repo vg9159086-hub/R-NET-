@@ -89,9 +89,11 @@ button{
 
 <!-- LOGIN -->
 <div id="loginBox">
-  <h3>Login Admin</h3>
+  <h3>Login Admin (opcional)</h3>
   <input type="text" id="adminUID" placeholder="Seu UID">
   <button onclick="loginAdmin()">Entrar</button>
+  <p>Se você não for admin, clique em "Continuar como visitante" para acessar o mural.</p>
+  <button onclick="continueAsVisitor()">Continuar como visitante</button>
 </div>
 
 <!-- FORMULÁRIO DE NOTÍCIA -->
@@ -123,17 +125,27 @@ const db = firebase.firestore();
 
 // UID do admin
 const ADMIN_UID = "jy7EFx66yFYPVEi5XZaSVYcyWrw2";
+let isAdmin = false;
 
 // LOGIN ADMIN
 function loginAdmin(){
   const inputUID = document.getElementById("adminUID").value.trim();
   if(inputUID === ADMIN_UID){
+    isAdmin = true;
     document.getElementById("loginBox").classList.add("hidden");
     document.getElementById("newsForm").classList.remove("hidden");
     alert("Bem-vindo admin!");
   } else {
-    alert("UID incorreto. Visitante acessando mural.");
+    alert("UID incorreto. Você será visitante.");
+    continueAsVisitor();
   }
+}
+
+// VISITANTE
+function continueAsVisitor(){
+  isAdmin = false;
+  document.getElementById("loginBox").classList.add("hidden");
+  document.getElementById("newsForm").classList.add("hidden");
 }
 
 // POSTAR NOTÍCIA
@@ -168,9 +180,10 @@ db.collection("news").orderBy("createdAt","desc")
   mural.innerHTML = "";
   snapshot.forEach(doc=>{
     const d = doc.data();
+    const canEdit = isAdmin && d.uid===ADMIN_UID;
     mural.innerHTML += `
       <div class="postIt" style="background:${d.color}">
-        ${d.uid===ADMIN_UID ? '<button onclick="removeNews(\''+doc.id+'\')">X</button>' : ''}
+        ${canEdit ? '<button onclick="removeNews(\''+doc.id+'\')">X</button>' : ''}
         <h4>${d.title}</h4>
         <p>${d.content}</p>
         <small>${d.date} ${d.time}</small>
