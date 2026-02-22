@@ -9,23 +9,22 @@
 <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
 
 <style>
-body{
+body {
   margin:0;
-  font-family:Arial, sans-serif;
-  background:#0f0f0f;
+  font-family:Arial;
+  background:#222;
   color:white;
-  overflow-x:hidden;
 }
 
-header{
+header {
   background:#111;
   padding:10px;
   text-align:center;
 }
 
-.logo{height:60px;}
+.logo { height:55px; }
 
-nav button{
+nav button {
   background:#ff0055;
   color:white;
   border:none;
@@ -35,176 +34,177 @@ nav button{
   cursor:pointer;
 }
 
-/* MURAL estilo Pinterest */
-#mural{
+#mural {
   display:flex;
-  flex-wrap: wrap;
+  flex-wrap:wrap;
   padding:20px;
-  justify-content:flex-start;
+  gap:20px;
+  justify-content:center;
 }
 
-/* POST-IT */
-.postIt{
-  width:280px;
+/* POST-IT COLORS */
+.postIt {
+  width:250px;
   min-height:200px;
-  margin:15px;
   padding:15px;
   border-radius:12px;
-  color:#111;
-  font-weight:bold;
   position:relative;
-  transition:0.3s;
-  box-shadow:0 8px 15px rgba(0,0,0,0.4);
+  box-shadow:0 4px 10px rgba(0,0,0,0.5);
   cursor:grab;
+  background:#fef68a; /* default amarelo */
+  overflow:hidden;
 }
-.postIt:hover{transform:scale(1.05);}
 
-/* Cores */
-.postYellow{background:#fff176;}
-.postPink{background:#f48fb1;}
-.postGreen{background:#81c784;}
-.postOrange{background:#ffb74d;}
+.postIt.pink { background:#ffb6c1; }
+.postIt.green { background:#b2fab4; }
+.postIt.orange { background:#ffc48c; }
 
-/* New Face */
-.newFace{
+.newFace {
   position:absolute;
-  top:8px;
-  right:8px;
-  background:red;
+  top:5px;
+  right:5px;
+  background:#ff0055;
   color:white;
-  padding:2px 6px;
+  padding:3px 6px;
   border-radius:6px;
   font-size:12px;
+  font-weight:bold;
 }
 
-/* Botões admin */
-.postButtons{
-  position:absolute;
-  bottom:8px;
-  right:8px;
+.postImg {
+  width:100%;
+  margin-top:10px;
+  border-radius:8px;
 }
-.postButtons button{
+
+.postButtons {
+  margin-top:10px;
+  display:flex;
+  justify-content:space-between;
+}
+
+.postButtons button {
+  background:#111;
+  color:white;
+  border:none;
+  padding:5px 10px;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+.adminForm {
+  background:#181818;
+  padding:15px;
+  margin:15px;
+  border-radius:12px;
+  max-width:600px;
+}
+
+.adminForm input, .adminForm textarea {
+  width:100%;
+  margin:5px 0;
+  padding:8px;
+  border-radius:6px;
+  border:none;
+}
+
+.adminForm button {
   background:#ff0055;
   color:white;
   border:none;
-  padding:4px 8px;
-  margin-left:4px;
+  padding:10px 20px;
+  margin-top:10px;
   border-radius:6px;
   cursor:pointer;
-  font-size:12px;
 }
 
-/* Imagem na notícia */
-.postImg{
-  width:100%;
-  max-height:150px;
-  margin-top:8px;
-  border-radius:8px;
-  object-fit:cover;
-}
 </style>
 </head>
 <body>
 
 <header>
   <img src="logo.png" class="logo">
-  <nav>
-    <button onclick="newPost()">Nova Notícia</button>
-  </nav>
+  <h1>R-net News</h1>
 </header>
+
+<!-- ADMIN FORM -->
+<div id="adminForm" class="adminForm hidden">
+  <h2>Postar Notícia</h2>
+  <input type="text" id="newsTitle" placeholder="Nome da notícia">
+  <input type="text" id="newsDate" placeholder="Data (DD/MM/AAAA)">
+  <input type="text" id="newsTime" placeholder="Hora (HH:MM)">
+  <textarea id="newsContent" placeholder="Escreva a notícia"></textarea>
+  <input type="text" id="newsImage" placeholder="URL da imagem (opcional)">
+  <select id="newsColor">
+    <option value="yellow">Amarelo</option>
+    <option value="pink">Rosa</option>
+    <option value="green">Verde</option>
+    <option value="orange">Laranja</option>
+  </select>
+  <button onclick="postNews()">Postar</button>
+</div>
 
 <div id="mural"></div>
 
 <script>
-// ========================
-// CONFIG FIREBASE
-// ========================
 const firebaseConfig = {
   apiKey: "AIzaSyCUFift2BuvD433AYTBVNGCNli2PtBMalo",
   authDomain: "rnetnews-273fc.firebaseapp.com",
   projectId: "rnetnews-273fc",
 };
+
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// ========================
-// CONFIG ADMIN
-// ========================
-const adminUID = "jy7EFx66yFYPVEi5XZaSVYcyWrw2";
-let currentUserUID = prompt("Digite seu UID (ou deixe vazio para visitante)");
+// === CONFIG ADMIN ===
+const adminUID = "jy7EFx66yFYPVEi5XZaSVYcyWrw2"; // seu UID
+let currentUserUID = prompt("Digite seu UID (apenas admin pode postar):");
 
-// ========================
-// NOVA NOTÍCIA
-// ========================
-function newPost(){
-  if(currentUserUID !== adminUID){
-    alert("Somente o admin pode postar notícias!");
-    return;
-  }
-
-  const title = prompt("Nome da notícia:");
-  const date = prompt("Data de publicação (YYYY-MM-DD):", new Date().toISOString().split("T")[0]);
-  const time = prompt("Hora da publicação (HH:MM):", new Date().toTimeString().split(" ")[0].slice(0,5));
-  const content = prompt("Escreva a notícia:");
-  const image = prompt("URL da imagem (opcional):");
-  const colorOptions = ["postYellow","postPink","postGreen","postOrange"];
-  const color = colorOptions[Math.floor(Math.random()*colorOptions.length)];
-
-  if(title && content){
-    db.collection("news").add({
-      title,
-      date,
-      time,
-      content,
-      image: image || "",
-      color,
-      createdAt:firebase.firestore.FieldValue.serverTimestamp()
-    });
-  }
+if(currentUserUID === adminUID){
+  document.getElementById("adminForm").classList.remove("hidden");
 }
 
-// ========================
-// EDITAR NOTÍCIA
-// ========================
-function editPost(id){
-  if(currentUserUID !== adminUID) return;
+// === POST NEWS ===
+function postNews(){
+  const title = document.getElementById("newsTitle").value;
+  const date = document.getElementById("newsDate").value;
+  const time = document.getElementById("newsTime").value;
+  const content = document.getElementById("newsContent").value;
+  const image = document.getElementById("newsImage").value;
+  const color = document.getElementById("newsColor").value;
 
-  const docRef = db.collection("news").doc(id);
-  docRef.get().then(doc=>{
-    if(!doc.exists) return;
-    const data = doc.data();
-
-    const newTitle = prompt("Editar título:", data.title);
-    const newDate = prompt("Editar data:", data.date);
-    const newTime = prompt("Editar hora:", data.time);
-    const newContent = prompt("Editar notícia:", data.content);
-    const newImage = prompt("Editar URL da imagem:", data.image);
-
-    if(newTitle && newContent){
-      docRef.update({
-        title:newTitle,
-        date:newDate,
-        time:newTime,
-        content:newContent,
-        image:newImage
-      });
-    }
+  db.collection("news").add({
+    title,
+    date,
+    time,
+    content,
+    image,
+    color,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
   });
+
+  // Limpar campos
+  document.getElementById("newsTitle").value = "";
+  document.getElementById("newsDate").value = "";
+  document.getElementById("newsTime").value = "";
+  document.getElementById("newsContent").value = "";
+  document.getElementById("newsImage").value = "";
 }
 
-// ========================
-// REMOVER NOTÍCIA
-// ========================
+// === REMOVE POST ===
 function removePost(id){
-  if(currentUserUID !== adminUID) return;
-  if(confirm("Deseja remover esta notícia?")){
-    db.collection("news").doc(id).delete();
+  db.collection("news").doc(id).delete();
+}
+
+// === EDIT POST ===
+function editPost(id){
+  const newContent = prompt("Edite a notícia:");
+  if(newContent){
+    db.collection("news").doc(id).update({content: newContent});
   }
 }
 
-// ========================
-// MOSTRAR NOTÍCIAS
-// ========================
+// === DISPLAY MURAL ===
 db.collection("news")
 .orderBy("createdAt","desc")
 .onSnapshot(snapshot=>{
@@ -213,10 +213,14 @@ db.collection("news")
 
   snapshot.forEach(doc=>{
     const d = doc.data();
-    const now = new Date();
-    const created = d.createdAt ? d.createdAt.toDate() : now;
-    const diffHours = (now - created)/(1000*60*60);
+    let created = new Date();
 
+    if(d.createdAt && d.createdAt.toDate){
+      created = d.createdAt.toDate();
+    }
+
+    const now = new Date();
+    const diffHours = (now - created)/(1000*60*60);
     let newFaceLabel = diffHours < 24 ? `<div class="newFace">New Face</div>` : "";
 
     let buttons = "";
@@ -241,9 +245,7 @@ db.collection("news")
     `;
   });
 
-  // ========================
-  // TORNA POST-ITS ARRÁSTAVEIS
-  // ========================
+  // Post-its arrastáveis
   interact('.postIt').draggable({
     inertia:true,
     modifiers: [
@@ -259,16 +261,17 @@ db.collection("news")
   });
 });
 
-function dragMoveListener (event) {
-  const target = event.target;
-  const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
-  const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+// === DRAG MOVE FUNCTION ===
+function dragMoveListener(event) {
+  var target = event.target;
+  var x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+  var y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
 
   target.style.transform = `translate(${x}px, ${y}px)`;
   target.setAttribute('data-x', x);
   target.setAttribute('data-y', y);
 }
-</script>
 
+</script>
 </body>
 </html>
