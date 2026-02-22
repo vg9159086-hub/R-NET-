@@ -2,13 +2,17 @@
 <head>
 <meta charset="UTF-8">
 <title>MV Zone</title><style>
-body{font-family:Arial;background:#111;color:#fff;text-align:center}
-input,button{padding:8px;margin:5px}
-.mv{border:1px solid #444;padding:10px;margin:15px}
-.rank{font-size:20px;color:#00ffcc}
+body{background:#111;color:#fff;font-family:Arial;text-align:center}
+.tela{display:none}
+input,button{margin:5px;padding:8px}
+.mv{border:1px solid #444;margin:10px;padding:10px}
 img.btn{width:40px;cursor:pointer}
-.comment{background:#222;padding:5px;margin:5px}
-</style></head><body><h1>MV Zone</h1><div id="login">
+</style></head>
+<body><h1>MV Zone</h1><!-- TELA INICIAL --><div id="inicio" class="tela">
+<h3>Bem-vindo</h3>
+<button onclick="mostrarLogin()">Entrar / Registrar</button>
+<button onclick="abrirCharts()">Ver Charts</button>
+</div><!-- LOGIN --><div id="login" class="tela">
 <h3>Login</h3>
 <input id="email" placeholder="Email"><br>
 <input id="senha" type="password" placeholder="Senha"><br><select id="tipo">
@@ -17,101 +21,82 @@ img.btn{width:40px;cursor:pointer}
 </select><br><input id="empresaNome" placeholder="Nome da Empresa (se empresa)"><br>
 
 <button onclick="registrar()">Registrar</button>
-<button onclick="entrar()">Entrar</button>
+<button onclick="entrar()">Entrar</button><br>
+<button onclick="voltarInicio()">Voltar</button>
 
-</div><div id="painel" style="display:none"><h3>Postar MV (Empresa)</h3>
-<input id="artist" placeholder="Artista"><br>
-<input id="link" placeholder="Link Embed (youtube.com/embed/...)"><br>
-<button onclick="postarMV()">Postar</button><h2>Chart Semanal</h2>
-<div id="lista"></div></div><script type="module">
-
+</div><!-- CHARTS --><div id="charts" class="tela">
+<button onclick="logout()">Sair</button>
+<h2>Chart Semanal</h2>
+<div id="lista"></div>
+</div><script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, addDoc, collection, getDocs, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, getDoc, setDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDa1Lm_bSz18M11gT0CZio-CG0mOqvBd7I",
+apiKey: "AIzaSyDa1Lm_bSz18M11gT0CZio-CG0mOqvBd7I",
   authDomain: "mvzone-29363.firebaseapp.com",
   projectId: "mvzone-29363",
-  storageBucket: "mvzone-29363.firebasestorage.app",
-  messagingSenderId: "927971258967",
-  appId: "1:927971258967:web:37ebd9479ecfa643f7e912"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth();
 const db = getFirestore();
 
-let userData = null;
+let userData=null;
+
+// CONTROLE DE TELAS
+function mostrarTela(id){
+document.querySelectorAll(".tela").forEach(t=>t.style.display="none");
+document.getElementById(id).style.display="block";
+}
+
+window.mostrarLogin = ()=>mostrarTela("login");
+window.voltarInicio = ()=>mostrarTela("inicio");
+window.abrirCharts = ()=>{
+mostrarTela("charts");
+carregarMVs();
+}
 
 // REGISTRAR
 window.registrar = async ()=>{
-let email=email.value;
-let senha=senha.value;
-let tipo=tipo.value;
-let nomeEmpresa=empresaNome.value;
-
-let cred=await createUserWithEmailAndPassword(auth,email,senha);
+let cred=await createUserWithEmailAndPassword(auth,email.value,senha.value);
 
 await setDoc(doc(db,"users",cred.user.uid),{
-tipo:tipo,
-empresa:nomeEmpresa
+tipo:tipo.value,
+empresa:empresaNome.value
 });
+
+alert("Conta criada!");
 }
 
 // LOGIN
 window.entrar = ()=>{
-signInWithEmailAndPassword(auth,email.value,senha.value);
+signInWithEmailAndPassword(auth,email.value,senha.value)
+.then(()=>mostrarTela("charts"))
+.catch(()=>alert("Erro no login"));
 }
 
-// ESTADO LOGIN
+// LOGOUT
+window.logout = ()=>{
+signOut(auth);
+mostrarTela("inicio");
+}
+
+// NÃO PULAR TELA AUTOMATICAMENTE
 onAuthStateChanged(auth, async(user)=>{
 if(user){
-document.getElementById("login").style.display="none";
-document.getElementById("painel").style.display="block";
-
 let docu=await getDoc(doc(db,"users",user.uid));
 userData=docu.data();
-
-carregarMVs();
 }
 });
-
-// POSTAR MV (1 por semana)
-window.postarMV = async()=>{
-if(userData.tipo!="empresa"){alert("Apenas empresas");return;}
-
-let semana=Date.now() - 7*24*60*60*1000;
-let q=await getDocs(collection(db,"mvs"));
-let pode=true;
-
-q.forEach(d=>{
-let mv=d.data();
-if(mv.uid==auth.currentUser.uid && mv.data>semana){
-pode=false;
-}
-});
-
-if(!pode){alert("Você só pode postar 1 MV por semana");return;}
-
-await addDoc(collection(db,"mvs"),{
-artist:artist.value,
-link:link.value,
-likes:0,
-data:Date.now(),
-uid:auth.currentUser.uid,
-empresa:userData.empresa
-});
-
-carregarMVs();
-}
 
 // CARREGAR MVs
 async function carregarMVs(){
 let lista=document.getElementById("lista");
 lista.innerHTML="";
 
-let semana=Date.now() - 7*24*60*60*1000;
+let semana=Date.now()-7*24*60*60*1000;
 
 let q=query(collection(db,"mvs"),orderBy("likes","desc"));
 let snap=await getDocs(q);
@@ -126,24 +111,14 @@ let div=document.createElement("div");
 div.className="mv";
 
 div.innerHTML=`
-<div class="rank">#${rank}</div>
-<h3>${mv.artist} - ${mv.empresa}</h3>
+<h3>#${rank} - ${mv.artist} (${mv.empresa})</h3>
 <iframe width="300" height="170" src="${mv.link}" allowfullscreen></iframe><br>
-
 <img src="like.png" class="btn" onclick="like('${docu.id}',1)">
 <img src="deslike.png" class="btn" onclick="like('${docu.id}',-1)">
 <p>Pontos: ${mv.likes}</p>
-
-<input id="c-${docu.id}" placeholder="Comentar">
-<button onclick="comentar('${docu.id}')">Enviar</button>
-
-<div id="com-${docu.id}"></div>
 `;
 
 lista.appendChild(div);
-
-carregarComentarios(docu.id);
-
 rank++;
 });
 }
@@ -158,50 +133,8 @@ likes:snap.data().likes + valor
 carregarMVs();
 }
 
-// COMENTAR
-window.comentar = async(id)=>{
-let texto=document.getElementById("c-"+id).value;
-
-await addDoc(collection(db,"comentarios"),{
-mv:id,
-texto:texto,
-user:auth.currentUser.email,
-uid:auth.currentUser.uid
-});
-
-carregarComentarios(id);
-}
-
-// CARREGAR COMENTARIOS
-async function carregarComentarios(id){
-let div=document.getElementById("com-"+id);
-if(!div) return;
-div.innerHTML="";
-
-let snap=await getDocs(collection(db,"comentarios"));
-
-snap.forEach(d=>{
-let c=d.data();
-if(c.mv==id){
-let el=document.createElement("div");
-el.className="comment";
-
-let del="";
-if(c.uid==auth.currentUser.uid){
-del=`<button onclick="apagar('${d.id}','${id}')">X</button>`;
-}
-
-el.innerHTML=`${c.user}: ${c.texto} ${del}`;
-div.appendChild(el);
-}
-});
-}
-
-// APAGAR COMENTARIO
-window.apagar = async(cid,id)=>{
-await deleteDoc(doc(db,"comentarios",cid));
-carregarComentarios(id);
-}
+// INICIAR NA TELA INICIAL
+mostrarTela("inicio");
 
 </script></body>
 </html>
