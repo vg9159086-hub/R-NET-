@@ -3,28 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <title>R-net News</title>
-
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <style>
-body {
+body{
   margin:0;
-  font-family:Arial;
-  background:#222;
+  font-family:Arial, sans-serif;
+  background:#0f0f0f;
   color:white;
 }
-
-header {
+header{
   background:#111;
   padding:10px;
   text-align:center;
 }
-
-.logo { height:55px; }
-
-nav button {
+.logo{height:55px;}
+nav button{
   background:#ff0055;
   color:white;
   border:none;
@@ -33,82 +29,22 @@ nav button {
   border-radius:6px;
   cursor:pointer;
 }
-
-#mural {
-  display:flex;
-  flex-wrap:wrap;
-  padding:20px;
-  gap:20px;
-  justify-content:center;
-}
-
-/* POST-IT COLORS */
-.postIt {
-  width:250px;
-  min-height:200px;
-  padding:15px;
-  border-radius:12px;
-  position:relative;
-  box-shadow:0 4px 10px rgba(0,0,0,0.5);
-  cursor:grab;
-  background:#fef68a; /* default amarelo */
-  overflow:hidden;
-}
-
-.postIt.pink { background:#ffb6c1; }
-.postIt.green { background:#b2fab4; }
-.postIt.orange { background:#ffc48c; }
-
-.newFace {
-  position:absolute;
-  top:5px;
-  right:5px;
-  background:#ff0055;
-  color:white;
-  padding:3px 6px;
-  border-radius:6px;
-  font-size:12px;
-  font-weight:bold;
-}
-
-.postImg {
-  width:100%;
-  margin-top:10px;
-  border-radius:8px;
-}
-
-.postButtons {
-  margin-top:10px;
-  display:flex;
-  justify-content:space-between;
-}
-
-.postButtons button {
-  background:#111;
-  color:white;
-  border:none;
-  padding:5px 10px;
-  border-radius:6px;
-  cursor:pointer;
-}
-
-.adminForm {
+#loginBox, #newsForm{
+  margin:20px auto;
   background:#181818;
-  padding:15px;
-  margin:15px;
+  padding:20px;
   border-radius:12px;
-  max-width:600px;
+  max-width:500px;
 }
-
-.adminForm input, .adminForm textarea {
+#loginBox input, #newsForm input, #newsForm textarea, #newsForm select{
   width:100%;
-  margin:5px 0;
   padding:8px;
+  margin:5px 0;
   border-radius:6px;
   border:none;
 }
-
-.adminForm button {
+#newsForm textarea{height:100px;}
+button{
   background:#ff0055;
   color:white;
   border:none;
@@ -117,7 +53,31 @@ nav button {
   border-radius:6px;
   cursor:pointer;
 }
-
+#mural{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  padding:20px;
+}
+.postIt{
+  width:250px;
+  min-height:200px;
+  margin:10px;
+  padding:15px;
+  border-radius:12px;
+  color:black;
+  position:relative;
+  box-shadow:0 4px 10px rgba(0,0,0,0.5);
+  font-family:Arial, sans-serif;
+}
+.postIt button{
+  position:absolute;
+  top:5px;
+  right:5px;
+  background:red;
+  padding:5px 8px;
+  font-size:12px;
+}
 </style>
 </head>
 <body>
@@ -127,151 +87,105 @@ nav button {
   <h1>R-net News</h1>
 </header>
 
-<!-- ADMIN FORM -->
-<div id="adminForm" class="adminForm hidden">
-  <h2>Postar Notícia</h2>
+<!-- LOGIN -->
+<div id="loginBox">
+  <h3>Login Admin</h3>
+  <input type="text" id="adminUID" placeholder="Seu UID">
+  <button onclick="loginAdmin()">Entrar</button>
+</div>
+
+<!-- FORMULÁRIO DE NOTÍCIA -->
+<div id="newsForm" class="hidden">
+  <h3>Nova Notícia</h3>
   <input type="text" id="newsTitle" placeholder="Nome da notícia">
-  <input type="text" id="newsDate" placeholder="Data (DD/MM/AAAA)">
-  <input type="text" id="newsTime" placeholder="Hora (HH:MM)">
-  <textarea id="newsContent" placeholder="Escreva a notícia"></textarea>
-  <input type="text" id="newsImage" placeholder="URL da imagem (opcional)">
+  <textarea id="newsContent" placeholder="Escreva sua notícia..."></textarea>
   <select id="newsColor">
     <option value="yellow">Amarelo</option>
     <option value="pink">Rosa</option>
-    <option value="green">Verde</option>
+    <option value="lightgreen">Verde</option>
     <option value="orange">Laranja</option>
   </select>
   <button onclick="postNews()">Postar</button>
 </div>
 
+<!-- MURAL -->
 <div id="mural"></div>
 
 <script>
+// CONFIG FIREBASE
 const firebaseConfig = {
   apiKey: "AIzaSyCUFift2BuvD433AYTBVNGCNli2PtBMalo",
   authDomain: "rnetnews-273fc.firebaseapp.com",
   projectId: "rnetnews-273fc",
 };
-
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// === CONFIG ADMIN ===
-const adminUID = "jy7EFx66yFYPVEi5XZaSVYcyWrw2"; // seu UID
-let currentUserUID = prompt("Digite seu UID (apenas admin pode postar):");
+// UID do admin
+const ADMIN_UID = "jy7EFx66yFYPVEi5XZaSVYcyWrw2";
 
-if(currentUserUID === adminUID){
-  document.getElementById("adminForm").classList.remove("hidden");
-}
-
-// === POST NEWS ===
-function postNews(){
-  const title = document.getElementById("newsTitle").value;
-  const date = document.getElementById("newsDate").value;
-  const time = document.getElementById("newsTime").value;
-  const content = document.getElementById("newsContent").value;
-  const image = document.getElementById("newsImage").value;
-  const color = document.getElementById("newsColor").value;
-
-  db.collection("news").add({
-    title,
-    date,
-    time,
-    content,
-    image,
-    color,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  });
-
-  // Limpar campos
-  document.getElementById("newsTitle").value = "";
-  document.getElementById("newsDate").value = "";
-  document.getElementById("newsTime").value = "";
-  document.getElementById("newsContent").value = "";
-  document.getElementById("newsImage").value = "";
-}
-
-// === REMOVE POST ===
-function removePost(id){
-  db.collection("news").doc(id).delete();
-}
-
-// === EDIT POST ===
-function editPost(id){
-  const newContent = prompt("Edite a notícia:");
-  if(newContent){
-    db.collection("news").doc(id).update({content: newContent});
+// LOGIN ADMIN
+function loginAdmin(){
+  const inputUID = document.getElementById("adminUID").value.trim();
+  if(inputUID === ADMIN_UID){
+    document.getElementById("loginBox").classList.add("hidden");
+    document.getElementById("newsForm").classList.remove("hidden");
+    alert("Bem-vindo admin!");
+  } else {
+    alert("UID incorreto. Visitante acessando mural.");
   }
 }
 
-// === DISPLAY MURAL ===
-db.collection("news")
-.orderBy("createdAt","desc")
+// POSTAR NOTÍCIA
+async function postNews(){
+  const title = document.getElementById("newsTitle").value.trim();
+  const content = document.getElementById("newsContent").value.trim();
+  const color = document.getElementById("newsColor").value;
+
+  if(!title || !content){
+    alert("Preencha título e conteúdo!");
+    return;
+  }
+
+  await db.collection("news").add({
+    title: title,
+    content: content,
+    color: color,
+    uid: ADMIN_UID,
+    date: new Date().toLocaleDateString(),
+    time: new Date().toLocaleTimeString(),
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  document.getElementById("newsTitle").value = "";
+  document.getElementById("newsContent").value = "";
+}
+
+// MURAL AO VIVO
+db.collection("news").orderBy("createdAt","desc")
 .onSnapshot(snapshot=>{
   const mural = document.getElementById("mural");
   mural.innerHTML = "";
-
   snapshot.forEach(doc=>{
     const d = doc.data();
-    let created = new Date();
-
-    if(d.createdAt && d.createdAt.toDate){
-      created = d.createdAt.toDate();
-    }
-
-    const now = new Date();
-    const diffHours = (now - created)/(1000*60*60);
-    let newFaceLabel = diffHours < 24 ? `<div class="newFace">New Face</div>` : "";
-
-    let buttons = "";
-    if(currentUserUID === adminUID){
-      buttons = `
-        <div class="postButtons">
-          <button onclick="editPost('${doc.id}')">Editar</button>
-          <button onclick="removePost('${doc.id}')">Remover</button>
-        </div>
-      `;
-    }
-
     mural.innerHTML += `
-      <div class="postIt ${d.color}" id="${doc.id}">
-        ${newFaceLabel}
-        <h3>${d.title}</h3>
-        <p><i>${d.date} ${d.time}</i></p>
+      <div class="postIt" style="background:${d.color}">
+        ${d.uid===ADMIN_UID ? '<button onclick="removeNews(\''+doc.id+'\')">X</button>' : ''}
+        <h4>${d.title}</h4>
         <p>${d.content}</p>
-        ${d.image ? `<img class="postImg" src="${d.image}">` : ""}
-        ${buttons}
+        <small>${d.date} ${d.time}</small>
       </div>
     `;
   });
-
-  // Post-its arrastáveis
-  interact('.postIt').draggable({
-    inertia:true,
-    modifiers: [
-      interact.modifiers.restrictRect({
-        restriction: 'parent',
-        endOnly: true
-      })
-    ],
-    autoScroll:true,
-    listeners:{
-      move: dragMoveListener
-    }
-  });
 });
 
-// === DRAG MOVE FUNCTION ===
-function dragMoveListener(event) {
-  var target = event.target;
-  var x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
-  var y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
-
-  target.style.transform = `translate(${x}px, ${y}px)`;
-  target.setAttribute('data-x', x);
-  target.setAttribute('data-y', y);
+// REMOVER NOTÍCIA
+function removeNews(id){
+  if(confirm("Deseja remover esta notícia?")){
+    db.collection("news").doc(id).delete();
+  }
 }
-
 </script>
+
 </body>
 </html>
