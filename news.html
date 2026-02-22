@@ -1,155 +1,187 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <title>R-net News</title>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
 <style>
 body {
   margin:0;
-  font-family:Arial, sans-serif;
-  background:#f0f0f0;
+  font-family: Arial, sans-serif;
+  background:#0f0f0f;
   color:#111;
 }
-
 header {
   background:#111;
   padding:10px;
   text-align:center;
 }
-
 .logo {height:55px;}
-
-#newsContainer {
+.container {
   display:flex;
-  flex-wrap:wrap;
-  justify-content:center;
-  padding:20px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin:20px;
   gap:20px;
 }
-
-.newsPost {
-  width:250px;
+.postit {
+  width:300px;
   min-height:200px;
   padding:15px;
   border-radius:12px;
-  background:#fffa91; /* default yellow */
-  box-shadow:0 2px 6px rgba(0,0,0,0.2);
-  position:relative;
-  transition:0.3s;
+  box-shadow:2px 2px 10px rgba(0,0,0,0.5);
+  position: relative;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
-
-.newsPost.green {background:#b6f0b6;}
-.newsPost.pink {background:#f0b6c3;}
-.newsPost.orange {background:#f0c89e;}
-
-.newsPost img {
+.postit h3 {
+  margin:0 0 10px 0;
+}
+.postit img {
   max-width:100%;
   margin-top:10px;
   border-radius:8px;
 }
-
-.newsPost h3 {
-  margin:0 0 5px 0;
-  font-size:18px;
-}
-
-.newsPost p {
-  margin:4px 0;
-  font-size:14px;
-}
-
-.newsPost small {
-  color:#555;
-}
-
-.newsPost button {
-  position:absolute;
-  top:5px;
-  right:5px;
-  background:red;
-  color:white;
-  border:none;
-  padding:3px 6px;
-  font-size:12px;
-  cursor:pointer;
-  border-radius:4px;
-}
-
-#adminPanel {
-  padding:20px;
-  background:#eee;
-  margin:20px;
-  border-radius:12px;
-  max-width:600px;
-}
-
-#adminPanel input, #adminPanel textarea {
-  width:100%;
-  margin-bottom:10px;
-  padding:8px;
-  border-radius:6px;
-  border:1px solid #ccc;
-}
-
-#adminPanel button {
-  padding:10px 20px;
-  border:none;
+button {
   background:#ff0055;
   color:white;
+  border:none;
+  padding:6px 12px;
   border-radius:6px;
   cursor:pointer;
+  margin-top:10px;
 }
-
+.admin-panel {
+  background:#222;
+  padding:15px;
+  margin:15px;
+  border-radius:12px;
+  text-align:center;
+}
+.hidden {display:none;}
 </style>
 </head>
 <body>
 
 <header>
   <img src="logo.png" class="logo">
-  <h1>R-net News</h1>
 </header>
 
-<div id="adminPanel" class="hidden">
-  <h2>Postar nova notícia</h2>
-  <input type="text" id="newsTitle" placeholder="Título da notícia">
-  <input type="text" id="newsImage" placeholder="URL da imagem (opcional)">
-  <textarea id="newsContent" placeholder="Conteúdo da notícia"></textarea>
+<!-- Painel admin -->
+<div id="adminPanel" class="admin-panel hidden">
+  <h2>Postar Notícia</h2>
+  <input type="text" id="newsTitle" placeholder="Título" style="width:80%; margin-bottom:5px;"><br>
+  <textarea id="newsContent" placeholder="Conteúdo" style="width:80%; height:80px;"></textarea><br>
+  <input type="text" id="newsImage" placeholder="URL da imagem (opcional)" style="width:80%; margin-top:5px;"><br>
+  <select id="newsColor" style="margin-top:5px;">
+    <option value="#FFEB3B">Amarelo</option>
+    <option value="#FF8A80">Rosa</option>
+    <option value="#81C784">Verde</option>
+    <option value="#FFB74D">Laranja</option>
+  </select><br>
   <button onclick="postNews()">Postar</button>
 </div>
 
-<div id="newsContainer"></div>
+<!-- Mural -->
+<div class="container" id="newsContainer"></div>
 
 <script>
 const firebaseConfig = {
-  apiKey: "AIzaSyCUFift2BuvD433AYTBVNGCNli2PtBMalo"
-  authDomain: "rnetnews-273fc.firebaseapp.com"
-  projectId: "rnetnews-273fc"
+  apiKey: "AIzaSyCUFift2BuvD433AYTBVNGCNli2PtBMalo",
+  authDomain: "rnetnews-273fc.firebaseapp.com",
+  projectId: "rnetnews-273fc",
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// =========================
-// CONFIGURAÇÃO ADMIN
-// =========================
-const adminUID = "jy7EFx66yFYPVEi5XZaSVYcyWrw2"; // seu UID
-let currentUser = adminUID; // aqui você controla se é admin ou visitante
+// UID do Admin
+const ADMIN_UID = "jy7EFx66yFYPVEi5XZaSVYcyWrw2";
 
-const isAdmin = currentUser === adminUID;
-if(isAdmin) {
+// Simulação de UID (você pode colocar login real ou cookie)
+let userUID = prompt("Coloque seu UID (deixe vazio para visitante):") || "visitor";
+
+// Mostrar painel admin só pro UID correto
+if(userUID === ADMIN_UID){
   document.getElementById("adminPanel").classList.remove("hidden");
 }
 
-// =========================
-// POSTAR NOTÍCIA
-// =========================
-function postNews(){
-  const title = document.getElementById("newsTitle").value.trim();
-  const content = document.getElementById("newsContent").value.trim();
-  const image = document.getElementById("newsImage").value.trim();
-  if(!title || !content) return alert("Título e conteúdo obrigatórios");
+// Função de postar notícia
+async function postNews(){
+  const title = document.getElementById("newsTitle").value;
+  const content = document.getElementById("newsContent").value;
+  const image = document.getElementById("newsImage").value;
+  const color = document.getElementById("newsColor").value;
 
-  const colors = ["yellow","green","pink","orange"];
-  const color = colors[Math.floor(Math.random()*colors.length)];
+  if(!title || !content) return alert("Título e conteúdo são obrigatórios!");
+
+  await db.collection("news").add({
+    title, content, image, color,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  document.getElementById("newsTitle").value="";
+  document.getElementById("newsContent").value="";
+  document.getElementById("newsImage").value="";
+}
+
+// Função remover notícia
+async function removeNews(id){
+  if(userUID !== ADMIN_UID) return;
+  await db.collection("news").doc(id).delete();
+}
+
+// Função editar notícia
+async function editNews(id, currentTitle, currentContent, currentImage, currentColor){
+  if(userUID !== ADMIN_UID) return;
+
+  const newTitle = prompt("Novo título:", currentTitle);
+  const newContent = prompt("Novo conteúdo:", currentContent);
+  const newImage = prompt("Nova URL da imagem:", currentImage);
+  const newColor = prompt("Nova cor (hex):", currentColor);
+
+  if(!newTitle || !newContent) return alert("Título e conteúdo obrigatórios!");
+
+  await db.collection("news").doc(id).update({
+    title:newTitle,
+    content:newContent,
+    image:newImage,
+    color:newColor
+  });
+}
+
+// Exibir notícias
+db.collection("news").orderBy("createdAt","desc")
+.onSnapshot(snapshot=>{
+  const container = document.getElementById("newsContainer");
+  container.innerHTML="";
+  snapshot.forEach(doc=>{
+    const d = doc.data();
+    const post = document.createElement("div");
+    post.className="postit";
+    post.style.background=d.color || "#FFEB3B";
+
+    let html = `<h3>${d.title}</h3>`;
+    html += `<p>${d.content}</p>`;
+    if(d.image) html += `<img src="${d.image}">`;
+    html += `<p style="font-size:12px; color:#333;">${d.createdAt ? new Date(d.createdAt.toDate()).toLocaleString() : ""}</p>`;
+
+    // Botões só pro admin
+    if(userUID === ADMIN_UID){
+      html += `<button onclick="editNews('${doc.id}','${escapeHtml(d.title)}','${escapeHtml(d.content)}','${d.image || ''}','${d.color || '#FFEB3B'}')">Editar</button>`;
+      html += `<button onclick="removeNews('${doc.id}')">Remover</button>`;
+    }
+
+    post.innerHTML = html;
+    container.appendChild(post);
+  });
+});
+
+// Função de escape pra não quebrar string no prompt
+function escapeHtml(text){
+  if(!text) return "";
+  return text.replace(/'/g,"\\'").replace(/"/g,'\\"');
+}
+</script>
+</body>
+</html>
