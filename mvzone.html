@@ -2,79 +2,162 @@
 <html>
 <head>
   <meta charset="UTF-8">
-
-  <script>
-alert("SITE CARREGOU");
-  </script>
-  
-  <title>MVZONE</title>
+  <title>MVZONE Profissional</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #121212;
+      color: #fff;
+      text-align: center;
+    }
+    #mvList div {
+      background: #1e1e1e;
+      margin: 15px auto;
+      padding: 15px;
+      border-radius: 10px;
+      width: 320px;
+    }
+    iframe {
+      border-radius: 10px;
+    }
+    button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      margin: 0 5px;
+    }
+    button img {
+      width: 32px;
+      vertical-align: middle;
+    }
+    hr {
+      border: 0;
+      border-top: 1px solid #333;
+    }
+  </style>
 </head>
 <body>
 
-  <h1>MVZONE</h1>
-
+  <h1>MVZONE Profissional</h1>
+  <h2>Ranking Semanal</h2>
   <div id="mvList"></div>
 
-  <!-- Firebase -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyDa1Lm_bSz18M11gT0CZio-CG0mOqvBd7I",
-    authDomain: "mvzone-29363.firebaseapp.com",
-    projectId: "mvzone-29363",
-    storageBucket: "mvzone-29363.firebasestorage.app",
-    messagingSenderId: "927971258967",
-    appId: "1:927971258967:web:f6b889fe9ac8265af7e912"
-  };
+  <script>
+    // 🔹 Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyDa1Lm_bSz18M11gT0CZio-CG0mOqvBd7I",
+      authDomain: "mvzone-29363.firebaseapp.com",
+      projectId: "mvzone-29363",
+      storageBucket: "mvzone-29363.firebasestorage.app",
+      messagingSenderId: "927971258967",
+      appId: "1:927971258967:web:f6b889fe9ac8265af7e912"
+    };
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-  const container = document.getElementById("mvList");
+    // 🔹 Autenticação anônima
+    firebase.auth().signInAnonymously()
+      .then(userCredential => {
+        window.userId = userCredential.user.uid;
+      })
+      .catch(error => console.error("Erro auth:", error));
 
-  function getYouTubeId(url) {
-    if (!url) return "";
-    if (url.includes("youtu.be/")) {
-      return url.split("youtu.be/")[1].split("?")[0];
+    // 🔹 Função votar
+    function votar(mvId, tipo) {
+      if (!window.userId) return alert("Aguarde autenticação...");
+
+      const voteRef = db.collection("votes");
+
+      voteRef.where("mvId", "==", mvId)
+             .where("userId", "==", window.userId)
+             .get()
+             .then(snapshot => {
+               if (!snapshot.empty) {
+                 alert("Você já votou nesse MV!");
+                 return;
+               }
+
+               // Adiciona voto
+               voteRef.add({
+                 mvId: mvId,
+                 userId: window.userId,
+                 type: tipo,
+                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
+               });
+
+               // Atualiza contagem de likes/dislikes e score
+               const mvRef = db.collection("mvzone").doc(mvId);
+               if(tipo === "like"){
+                 mvRef.update({
+                   likes: firebase.firestore.FieldValue.increment(1),
+                   score: firebase.firestore.FieldValue.increment(1)
+                 });
+               } else {
+                 mvRef.update({
+                   dislikes: firebase.firestore.FieldValue.increment(1),
+                   score: firebase.firestore.FieldValue.increment(-1)
+                 });
+               }
+             });
     }
-    if (url.includes("v=")) {
-      return url.split("v=")[1].split("&")[0];
+
+    // 🔹 Carregar MVs ativos e ranking semanal
+    function carregarMVs() {
+      const now = new Date();
+
+      db.collection("mvzone")
+        .orderBy("score", "desc")
+        .onSnapshot(snapshot => {
+          const container = document.getElementById("mvList");
+          container.innerHTML = "";
+
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            const mvId = doc.id;
+
+            // Remove MV se expirou (30 dias)
+            const expiresAt = data.expiresAt ? data.expiresAt.toDate() : null;
+            if (expiresAt && now > expiresAt) {
+              db.collection("mvzone").doc(mvId).delete();
+              return;
+            }
+
+            // Pega videoId do YouTube
+            const videoId = data.youtubeUrl.includes("youtu.be/")
+                              ? data.youtubeUrl.split("youtu.be/")[1].split("?")[0]
+                              : data.youtubeUrl.split("v=")[1].split("&")[0];
+
+            // Cria bloco MV
+            const mv = document.createElement("div");
+            mv.innerHTML = `
+              <h3>${data.artist}</h3>
+              <p>Empresa: ${data.empresaId}</p>
+              <iframe width="300" height="170"
+                src="https://www.youtube.com/embed/${videoId}"
+                frameborder="0" allowfullscreen>
+              </iframe>
+              <p>Likes: ${data.likes || 0} | Dislikes: ${data.dislikes || 0}</p>
+              <button onclick="votar('${mvId}', 'like')">
+                <img src="like.png" alt="Like">
+              </button>
+              <button onclick="votar('${mvId}', 'dislike')">
+                <img src="dislike.png" alt="Dislike">
+              </button>
+              <hr>
+            `;
+            container.appendChild(mv);
+          });
+        });
     }
-    return "";
-  }
 
-  try {
-    const querySnapshot = await getDocs(collection(db, "mvzone"));
-
-    if (querySnapshot.empty) {
-      container.innerHTML = "Nenhum MV encontrado.";
-    } else {
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        const videoId = getYouTubeId(data.url);
-
-        container.innerHTML += `
-          <div style="margin-bottom:30px; border-bottom:1px solid #ccc;">
-            <h2>${data.artist}</h2>
-            <p><b>Empresa:</b> ${data.company}</p>
-
-            <iframe width="320" height="180"
-              src="https://www.youtube.com/embed/${videoId}"
-              frameborder="0"
-              allowfullscreen>
-            </iframe>
-
-            <p>👍 Likes: ${data.likes || 0}</p>
-          </div>
-        `;
-      });
-    }
-  } catch (error) {
-    container.innerHTML = "Erro: " + error.message;
-  }
-</script>
+    carregarMVs();
+  </script>
 
 </body>
 </html>
