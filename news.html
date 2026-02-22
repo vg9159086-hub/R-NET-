@@ -1,285 +1,218 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>RNet News</title>
+<title>R-net News</title>
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <style>
 body{
   margin:0;
-  font-family:Arial;
-  background:#f2f2f2;
+  font-family:Arial, sans-serif;
+  background:#f0f0f0;
 }
 
-/* Header */
 header{
   background:#111;
-  color:white;
   padding:10px;
   text-align:center;
 }
 
 .logo{height:55px;}
 
-/* Login/Admin */
-#loginBox{
-  max-width:400px;
-  margin:20px auto;
-  background:#222;
-  padding:20px;
-  border-radius:12px;
-  color:white;
-  text-align:center;
-}
-
-#loginBox input{
-  width:80%;
-  padding:8px;
-  margin:5px 0;
-  border-radius:6px;
-  border:none;
-}
-
-#loginBox button{
-  background:#ff0055;
-  color:white;
-  border:none;
-  padding:10px 20px;
-  border-radius:6px;
-  cursor:pointer;
-}
-
-/* Mural */
-#mural{
+#newsContainer{
   display:flex;
   flex-wrap:wrap;
   justify-content:center;
-  margin:20px;
+  padding:20px;
+  gap:15px;
 }
 
-/* Post-it */
-.postit{
-  width:300px;
+/* POST-ITS */
+.postIt{
+  width:280px;
   min-height:200px;
-  margin:10px;
   padding:15px;
   border-radius:12px;
-  box-shadow:0 4px 8px rgba(0,0,0,0.2);
+  box-shadow:0 5px 15px rgba(0,0,0,0.2);
   position:relative;
-  word-wrap:break-word;
+  font-size:14px;
+  color:#111;
+  white-space:pre-wrap;
+  cursor:pointer;
   transition:0.3s;
 }
 
-.postit h3{
-  margin:0 0 10px 0;
+.postIt:hover{
+  transform:scale(1.03);
 }
 
-.postit img{
-  max-width:100%;
-  margin-top:10px;
+.yellow{background:#fff176;}
+.pink{background:#ff8a80;}
+.green{background:#b9f6ca;}
+.orange{background:#ffd180;}
+
+/* ADMIN PANEL */
+#adminPanel{
+  max-width:500px;
+  margin:20px auto;
+  background:#181818;
+  color:white;
+  padding:15px;
+  border-radius:12px;
+}
+
+#adminPanel input, #adminPanel textarea{
+  width:100%;
+  margin-bottom:10px;
+  padding:8px;
   border-radius:6px;
+  border:none;
 }
 
-.editBtn, .deleteBtn{
-  position:absolute;
-  top:5px;
-  cursor:pointer;
-  background:#111;
+#adminPanel button{
+  background:#ff0055;
   color:white;
   border:none;
-  padding:4px 8px;
+  padding:10px 15px;
   border-radius:6px;
-  font-size:12px;
+  cursor:pointer;
 }
 
-.editBtn{right:50px;}
-.deleteBtn{right:5px;}
-
-/* Cores Post-it */
-.yellow{background:#fffa8b;}
-.pink{background:#ffb6c1;}
-.green{background:#a2fca1;}
-.orange{background:#ffc48b;}
+.hidden{display:none;}
 </style>
 </head>
 <body>
 
 <header>
   <img src="logo.png" class="logo">
-  <h1>RNet News</h1>
 </header>
 
-<!-- LOGIN ADMIN -->
-<div id="loginBox">
-  <h2>Admin Login</h2>
-  <input type="email" id="email" placeholder="Email"><br>
-  <input type="password" id="password" placeholder="Senha"><br>
-  <button onclick="loginAdmin()">Entrar</button>
-  <p id="loginMsg"></p>
+<!-- ADMIN LOGIN -->
+<div id="adminLogin" style="text-align:center; padding:20px;">
+  <p>Digite seu UID para acessar o painel:</p>
+  <input type="text" id="uidInput" placeholder="Seu UID">
+  <button onclick="checkAdmin()">Entrar</button>
 </div>
 
-<!-- FORMULARIO POST -->
-<div id="postForm" class="hidden" style="max-width:500px;margin:20px auto;background:#222;padding:20px;border-radius:12px;color:white;">
-  <h3>Criar / Editar Notícia</h3>
-  <input type="text" id="newsTitle" placeholder="Título da notícia"><br>
-  <input type="date" id="newsDate"><br>
-  <input type="time" id="newsTime"><br>
-  <textarea id="newsContent" placeholder="Escreva a notícia..." style="width:95%;height:100px;margin-top:10px;border-radius:6px;padding:8px;"></textarea><br>
-  <input type="text" id="newsImage" placeholder="URL da imagem (opcional)"><br>
-  <select id="newsColor">
-    <option value="yellow">Amarelo</option>
-    <option value="pink">Rosa</option>
-    <option value="green">Verde</option>
-    <option value="orange">Laranja</option>
-  </select><br><br>
-  <button onclick="submitNews()">Publicar</button>
-  <button onclick="cancelEdit()">Cancelar</button>
+<!-- ADMIN PANEL -->
+<div id="adminPanel" class="hidden">
+  <h2>Painel de Notícias</h2>
+  <input type="text" id="newsTitle" placeholder="Título da notícia">
+  <input type="date" id="newsDate">
+  <input type="time" id="newsTime">
+  <textarea id="newsContent" placeholder="Escreva a notícia aqui..."></textarea>
+  <input type="text" id="newsImage" placeholder="URL da imagem (opcional)">
+  <button onclick="addNews()">Publicar Notícia</button>
 </div>
 
-<!-- MURAL -->
-<div id="mural"></div>
+<!-- MURAL DE NOTÍCIAS -->
+<div id="newsContainer"></div>
 
 <script>
-/* ======================= */
-/* FIREBASE CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyCUFift2BuvD433AYTBVNGCNli2PtBMalo",
   authDomain: "rnetnews-273fc.firebaseapp.com",
   projectId: "rnetnews-273fc",
 };
-
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-const auth = firebase.auth();
 
-const adminUID = "jy7EFx66yFYPVEi5XZaSVYcyWrw2"; // só você pode postar
+// UID ADMIN
+const adminUID = "ITxtdznlxEeXhDoSFcfjYCge6gn1";
 
-let editingDoc = null;
-
-/* ======================= */
-/* LOGIN ADMIN */
-function loginAdmin(){
-  const email = document.getElementById("email").value;
-  const pass = document.getElementById("password").value;
-
-  auth.signInWithEmailAndPassword(email, pass)
-  .then(user=>{
-    if(user.user.uid !== adminUID){
-      document.getElementById("loginMsg").innerText="Não autorizado!";
-      auth.signOut();
-      return;
-    }
-    document.getElementById("loginBox").classList.add("hidden");
-    document.getElementById("postForm").classList.remove("hidden");
-  })
-  .catch(err=>{
-    document.getElementById("loginMsg").innerText=err.message;
-  });
+// =====================
+// CHECK ADMIN
+// =====================
+function checkAdmin(){
+  const uid = document.getElementById("uidInput").value.trim();
+  if(uid === adminUID){
+    document.getElementById("adminLogin").classList.add("hidden");
+    document.getElementById("adminPanel").classList.remove("hidden");
+  }else{
+    alert("UID incorreto! Apenas o administrador pode postar.");
+  }
 }
 
-/* ======================= */
-/* PUBLICAR / EDITAR */
-function submitNews(){
-  const title = document.getElementById("newsTitle").value;
+// =====================
+// ADICIONAR NOTÍCIA
+// =====================
+function addNews(){
+  const title = document.getElementById("newsTitle").value.trim();
   const date = document.getElementById("newsDate").value;
   const time = document.getElementById("newsTime").value;
-  const content = document.getElementById("newsContent").value;
-  const image = document.getElementById("newsImage").value;
-  const color = document.getElementById("newsColor").value;
+  const content = document.getElementById("newsContent").value.trim();
+  const image = document.getElementById("newsImage").value.trim();
 
-  if(!title || !content) return alert("Título e conteúdo são obrigatórios");
-
-  const data = {
-    title,
-    date,
-    time,
-    content,
-    images: image ? [image] : [],
-    color,
-    uid: adminUID,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  };
-
-  if(editingDoc){
-    db.collection("news").doc(editingDoc).set(data);
-    editingDoc = null;
-  } else {
-    db.collection("news").add(data);
+  if(!title || !date || !time || !content){
+    alert("Preencha todos os campos!");
+    return;
   }
 
-  document.getElementById("newsTitle").value="";
-  document.getElementById("newsDate").value="";
-  document.getElementById("newsTime").value="";
-  document.getElementById("newsContent").value="";
-  document.getElementById("newsImage").value="";
+  db.collection("news").add({
+    title, date, time, content, image,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  document.getElementById("newsTitle").value = "";
+  document.getElementById("newsDate").value = "";
+  document.getElementById("newsTime").value = "";
+  document.getElementById("newsContent").value = "";
+  document.getElementById("newsImage").value = "";
 }
 
-/* Cancelar edição */
-function cancelEdit(){
-  editingDoc=null;
-  document.getElementById("newsTitle").value="";
-  document.getElementById("newsDate").value="";
-  document.getElementById("newsTime").value="";
-  document.getElementById("newsContent").value="";
-  document.getElementById("newsImage").value="";
+// =====================
+// REMOVER NOTÍCIAS
+// =====================
+function removeNews(id){
+  if(confirm("Tem certeza que deseja remover esta notícia?")){
+    db.collection("news").doc(id).delete();
+  }
 }
 
-/* ======================= */
-/* MURAL AO VIVO */
-db.collection("news").orderBy("createdAt","desc")
+// =====================
+// EDITAR NOTÍCIAS
+// =====================
+function editNews(id, current){
+  const newContent = prompt("Edite o conteúdo da notícia:", current.content);
+  if(newContent !== null){
+    db.collection("news").doc(id).update({content:newContent});
+  }
+}
+
+// =====================
+// CARREGAR NOTÍCIAS
+// =====================
+function randomColor(){
+  const colors = ["yellow","pink","green","orange"];
+  return colors[Math.floor(Math.random()*colors.length)];
+}
+
+db.collection("news")
+.orderBy("createdAt","desc")
 .onSnapshot(snapshot=>{
-  const mural = document.getElementById("mural");
-  mural.innerHTML="";
+  const container = document.getElementById("newsContainer");
+  container.innerHTML="";
   snapshot.forEach(doc=>{
     const d = doc.data();
-    const post = document.createElement("div");
-    post.classList.add("postit");
-    post.classList.add(d.color || "yellow");
-
-    post.innerHTML=`
-      <h3>${d.title}</h3>
-      <p><b>${d.date} ${d.time}</b></p>
-      <p>${d.content}</p>
-      ${d.images && d.images.length>0 ? `<img src="${d.images[0]}">` : ""}
-    `;
-
-    // Só admin vê botões
-    auth.onAuthStateChanged(user=>{
-      if(user && user.uid === adminUID){
-        const editBtn = document.createElement("button");
-        editBtn.innerText="Editar";
-        editBtn.classList.add("editBtn");
-        editBtn.onclick=()=>editNews(doc.id, d);
-        post.appendChild(editBtn);
-
-        const delBtn = document.createElement("button");
-        delBtn.innerText="Excluir";
-        delBtn.classList.add("deleteBtn");
-        delBtn.onclick=()=>db.collection("news").doc(doc.id).delete();
-        post.appendChild(delBtn);
-      }
-    });
-
-    mural.appendChild(post);
+    const colorClass = randomColor();
+    let html = `<div class="postIt ${colorClass}">`;
+    if(d.image){
+      html += `<img src="${d.image}" style="width:100%; border-radius:8px; margin-bottom:8px;">`;
+    }
+    html += `<h3>${d.title}</h3>`;
+    html += `<p><strong>${d.date} ${d.time}</strong></p>`;
+    html += `<p>${d.content}</p>`;
+    if(document.getElementById("adminPanel").classList.contains("hidden")===false){
+      html += `<button onclick="editNews('${doc.id}', ${JSON.stringify(d)})">Editar</button>`;
+      html += `<button onclick="removeNews('${doc.id}')">Remover</button>`;
+    }
+    html += `</div>`;
+    container.innerHTML += html;
   });
 });
-
-/* ======================= */
-/* EDITAR NOTÍCIA */
-function editNews(docId, data){
-  editingDoc = docId;
-  document.getElementById("newsTitle").value = data.title;
-  document.getElementById("newsDate").value = data.date;
-  document.getElementById("newsTime").value = data.time;
-  document.getElementById("newsContent").value = data.content;
-  document.getElementById("newsImage").value = data.images && data.images[0] || "";
-  document.getElementById("newsColor").value = data.color || "yellow";
-}
 </script>
 
 </body>
