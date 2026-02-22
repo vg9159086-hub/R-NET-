@@ -2,41 +2,129 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>MV Zone</title>
+<title>MVZONE</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
-body { font-family: Arial; background:#111; color:white; text-align:center; }
-input, button { margin:5px; padding:8px; }
-.mv { background:#1c1c1c; padding:10px; margin:10px; border-radius:10px; }
-.rank { font-size:20px; color:#00ffcc; }
-.vote img { width:30px; cursor:pointer; margin:5px; }
-.comment { background:#222; margin:5px; padding:5px; border-radius:5px; }
+body{
+  margin:0;
+  font-family:Arial;
+  background:#0f0f0f;
+  color:white;
+}
+
+header{
+  background:#111;
+  padding:15px;
+  text-align:center;
+  border-bottom:2px solid #222;
+}
+
+.logo{
+  height:60px;
+}
+
+button{
+  background:#ff0055;
+  color:white;
+  border:none;
+  padding:8px 14px;
+  cursor:pointer;
+  border-radius:6px;
+}
+
+button:hover{
+  opacity:0.8;
+}
+
+.card{
+  background:#181818;
+  padding:15px;
+  margin:15px;
+  border-radius:12px;
+  transition:0.3s;
+}
+
+.card:hover{
+  transform:scale(1.02);
+}
+
+.hidden{
+  display:none;
+}
+
+.trophy{
+  font-size:22px;
+  color:gold;
+}
+
+input{
+  padding:8px;
+  margin:5px;
+  border-radius:6px;
+  border:none;
+}
+
+#rulesPage{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:#000;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  text-align:center;
+  padding:20px;
+  z-index:999;
+}
 </style>
 </head>
 <body>
 
-<h1>MV ZONE</h1>
-
-<div id="loginArea">
-<h3>Entrar</h3>
-<input id="companyName" placeholder="Empresa">
-<input id="companyPass" type="password" placeholder="Senha">
-<button onclick="loginCompany()">Entrar como Empresa</button>
-<button onclick="enterVisitor()">Entrar como Visitante</button>
+<div id="rulesPage">
+  <img src="logo.png" class="logo">
+  <h2>MVZONE Rules</h2>
+  <p>
+  • Unlimited voting allowed<br>
+  • Use wisely and support your artist<br>
+  • Give a chance to all MVs here<br>
+  • If they're here, they were well produced!
+  </p>
+  <button onclick="enterSite()">Enter MVZONE</button>
 </div>
 
-<div id="companyArea" style="display:none;">
-<h3>Painel da Empresa</h3>
-<input id="artistInput" placeholder="Artista">
-<input id="mvLinkInput" placeholder="Link do YouTube">
-<button onclick="addMV()">Adicionar MV</button>
+<header>
+  <img src="logo.png" class="logo">
+  <div>
+    <button onclick="showCharts()">Charts</button>
+    <button onclick="showHistory()">History</button>
+    <button onclick="showLogin()">Company Login</button>
+  </div>
+</header>
+
+<div id="charts"></div>
+
+<div id="history" class="hidden"></div>
+
+<div id="loginPage" class="hidden" style="padding:20px;">
+  <h2>Company Login</h2>
+  <input id="companyName" placeholder="Company Name">
+  <input id="companyPass" type="password" placeholder="Password">
+  <button onclick="login()">Login</button>
 </div>
 
-<h2>Charts</h2>
-<div id="mvList"></div>
-
-<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+<div id="adminPanel" class="hidden" style="padding:20px;">
+  <h2>Company Panel</h2>
+  <input id="artist" placeholder="Artist Name">
+  <input id="title" placeholder="MV Title">
+  <input id="url" placeholder="YouTube Link">
+  <button onclick="addMV()">Add MV</button>
+  <button onclick="logout()">Logout</button>
+</div>
 
 <script>
 const firebaseConfig = {
@@ -48,149 +136,162 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-let currentCompany = null;
-let isCompany = false;
+let loggedCompany = null;
 
-// Entrar visitante
-function enterVisitor(){
-  document.getElementById("loginArea").style.display="none";
+function enterSite(){
+  document.getElementById("rulesPage").style.display="none";
+  loadMVs();
 }
 
-// Login empresa
-async function loginCompany(){
-  const name = document.getElementById("companyName").value;
-  const pass = document.getElementById("companyPass").value;
+function showCharts(){
+  document.getElementById("charts").classList.remove("hidden");
+  document.getElementById("history").classList.add("hidden");
+  document.getElementById("loginPage").classList.add("hidden");
+  document.getElementById("adminPanel").classList.add("hidden");
+}
+
+function showHistory(){
+  document.getElementById("charts").classList.add("hidden");
+  document.getElementById("history").classList.remove("hidden");
+  loadHistory();
+}
+
+function showLogin(){
+  document.getElementById("loginPage").classList.remove("hidden");
+}
+
+async function login(){
+  const name = companyName.value;
+  const pass = companyPass.value;
 
   const doc = await db.collection("companies").doc(name).get();
-
-  if(doc.exists){
-    if(doc.data().password === pass){
-      currentCompany = name;
-      isCompany = true;
-      document.getElementById("loginArea").style.display="none";
-      document.getElementById("companyArea").style.display="block";
-    }else{
-      alert("Senha errada");
-    }
-  }else{
-    await db.collection("companies").doc(name).set({
-      password: pass,
-      lastPost: 0
-    });
-    alert("Empresa criada, entre novamente");
+  if(doc.exists && doc.data().password === pass){
+    loggedCompany = name;
+    loginPage.classList.add("hidden");
+    adminPanel.classList.remove("hidden");
+  } else {
+    alert("Wrong login");
   }
 }
 
-// Converter link YouTube
-function convertLink(url){
-  let id = "";
-  if(url.includes("youtu.be/")){
-    id = url.split("youtu.be/")[1].split("?")[0];
-  }else if(url.includes("v=")){
-    id = url.split("v=")[1].split("&")[0];
-  }
-  return "https://www.youtube.com/embed/" + id;
+function logout(){
+  loggedCompany = null;
+  adminPanel.classList.add("hidden");
 }
 
-// Adicionar MV (1 por semana)
 async function addMV(){
-  const artist = document.getElementById("artistInput").value;
-  const link = document.getElementById("mvLinkInput").value;
-
-  const companyDoc = await db.collection("companies").doc(currentCompany).get();
-  const lastPost = companyDoc.data().lastPost || 0;
-  const now = Date.now();
-
-  if(now - lastPost < 7*24*60*60*1000){
-    alert("Você só pode postar 1 MV por semana");
-    return;
-  }
+  const artist = document.getElementById("artist").value;
+  const title = document.getElementById("title").value;
+  const url = document.getElementById("url").value;
 
   await db.collection("mvs").add({
-    artist: artist,
-    url: convertLink(link),
-    company: currentCompany,
-    likes: 0,
-    created: now
+    artist,
+    title,
+    company: loggedCompany,
+    url,
+    points:0,
+    trophy:false
   });
 
-  await db.collection("companies").doc(currentCompany).update({
-    lastPost: now
-  });
-
-  alert("MV enviado!");
+  alert("MV Added!");
+  loadMVs();
 }
 
-// Votar
-async function vote(id, value){
+async function vote(id,value){
   const ref = db.collection("mvs").doc(id);
   const doc = await ref.get();
-  const likes = doc.data().likes + value;
-  await ref.update({likes: likes});
+  const newPoints = doc.data().points + value;
+  await ref.update({points:newPoints});
+  loadMVs();
 }
 
-// Comentário
-async function addComment(mvId){
-  const text = prompt("Comentário:");
-  if(!text) return;
+async function loadMVs(){
+  checkWeeklyReset();
 
-  const name = isCompany ? currentCompany : "Visitante";
+  const snap = await db.collection("mvs").orderBy("points","desc").get();
+  charts.innerHTML="";
 
-  await db.collection("comments").add({
-    mvId: mvId,
-    name: name,
-    text: text,
-    created: Date.now()
-  });
-}
+  let position=1;
 
-// Carregar MVs
-db.collection("mvs").orderBy("likes","desc").onSnapshot(snapshot=>{
-  const container = document.getElementById("mvList");
-  container.innerHTML="";
-  let rank = 1;
-
-  snapshot.forEach(doc=>{
-    const data = doc.data();
-    const mv = document.createElement("div");
-    mv.className="mv";
-
-    mv.innerHTML=`
-      <div class="rank">#${rank}</div>
-      <h3>${data.artist}</h3>
-      <p>${data.company}</p>
-      <iframe width="300" height="170" src="${data.url}" allowfullscreen></iframe>
-      <div class="vote">
-        <img src="like.png" onclick="vote('${doc.id}',1)">
-        <img src="deslike.png" onclick="vote('${doc.id}',-1)">
+  snap.forEach(doc=>{
+    const d = doc.data();
+    charts.innerHTML += `
+      <div class="card">
+        <h3>#${position} ${d.artist} ${d.trophy ? '<span class="trophy">🏆</span>' : ''}</h3>
+        <p>${d.title}</p>
+        <iframe width="100%" height="250"
+        src="https://www.youtube.com/embed/${extractID(d.url)}"
+        frameborder="0" allowfullscreen></iframe>
+        <p>Points: ${d.points}</p>
+        <button onclick="vote('${doc.id}',1)">👍</button>
+        <button onclick="vote('${doc.id}',-1)">👎</button>
       </div>
-      <p>Pontos: ${data.likes}</p>
-      <button onclick="addComment('${doc.id}')">Comentar</button>
-      <div id="comments-${doc.id}"></div>
     `;
-
-    container.appendChild(mv);
-
-    // carregar comentários
-    db.collection("comments")
-      .where("mvId","==",doc.id)
-      .orderBy("created")
-      .onSnapshot(cSnap=>{
-        const cDiv = document.getElementById("comments-"+doc.id);
-        if(!cDiv) return;
-        cDiv.innerHTML="";
-        cSnap.forEach(c=>{
-          const d = c.data();
-          const el = document.createElement("div");
-          el.className="comment";
-          el.innerHTML=`<b>${d.name}:</b> ${d.text}`;
-          cDiv.appendChild(el);
-        });
-      });
-
-    rank++;
+    position++;
   });
-});
+}
+
+function extractID(url){
+  const regExp = /(?:youtube\.com\/.*v=|youtu\.be\/)([^&]+)/;
+  const match = url.match(regExp);
+  return match ? match[1] : "";
+}
+
+async function checkWeeklyReset(){
+  const today = new Date();
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - today.getDay() + 1);
+  const weekString = monday.toISOString().split("T")[0];
+
+  const configRef = db.collection("system").doc("config");
+  const configDoc = await configRef.get();
+  if(!configDoc.exists) return;
+
+  if(configDoc.data().lastReset === weekString) return;
+
+  const snap = await db.collection("mvs").orderBy("points","desc").get();
+  let ranking=[];
+  let pos=1;
+
+  for(const doc of snap.docs){
+    const data=doc.data();
+    ranking.push({
+      artist:data.artist,
+      points:data.points,
+      position:pos
+    });
+
+    await doc.ref.update({
+      trophy: pos===1,
+      points:0
+    });
+
+    pos++;
+  }
+
+  await db.collection("weeklyCharts").doc(weekString).set({
+    week:weekString,
+    ranking
+  });
+
+  await configRef.update({
+    lastReset:weekString
+  });
+}
+
+async function loadHistory(){
+  const snap = await db.collection("weeklyCharts").orderBy("week","desc").get();
+  history.innerHTML="";
+  snap.forEach(doc=>{
+    const d=doc.data();
+    history.innerHTML += `
+      <div class="card">
+        <h3>Week ${d.week}</h3>
+        ${d.ranking.map(r=>`<p>#${r.position} ${r.artist} (${r.points})</p>`).join("")}
+      </div>
+    `;
+  });
+}
 </script>
 
 </body>
