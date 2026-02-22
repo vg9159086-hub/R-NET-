@@ -1,199 +1,155 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
 <meta charset="UTF-8">
 <title>MVZONE</title>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
 <style>
-body{font-family:Arial;background:#111;color:white;text-align:center}
-button{padding:6px 12px;margin:5px;border:none;border-radius:6px;cursor:pointer}
-input{padding:6px;margin:5px;border-radius:6px;border:none}
-.card{background:#1e1e1e;margin:15px;padding:15px;border-radius:10px}
-.rank{font-size:20px;font-weight:bold}
-.hidden{display:none}
+body {
+    font-family: Arial;
+    background: #111;
+    color: white;
+    text-align: center;
+}
+
+input, button {
+    padding: 8px;
+    margin: 5px;
+}
+
+.video {
+    border: 1px solid #444;
+    padding: 10px;
+    margin: 15px;
+}
+
+iframe {
+    width: 300px;
+    height: 170px;
+}
 </style>
 </head>
 <body>
 
 <h1>MVZONE</h1>
 
-<div id="loginArea">
-  <h2>Entrar</h2>
-  <button onclick="enterVisitor()">Visitante</button><br>
-  <input id="companyName" placeholder="Nome da Empresa">
-  <input id="companyPass" type="password" placeholder="Senha">
-  <button onclick="enterCompany()">Entrar Empresa</button>
-</div>
+<h2>Cadastrar MV</h2>
 
-<div id="companyPanel" class="hidden">
-  <h2>Painel Empresa</h2>
+<input id="artist" placeholder="Artista">
+<input id="title" placeholder="Título do MV">
+<input id="youtube" placeholder="Link do YouTube">
+<br>
+<button onclick="addMV()">Cadastrar</button>
 
-  <h3>Cadastrar Artista</h3>
-  <input id="artistName" placeholder="Nome do Artista">
-  <button onclick="addArtist()">Cadastrar</button>
+<hr>
 
-  <h3>Adicionar MV</h3>
-  <select id="artistSelect"></select><br>
-  <input id="mvLink" placeholder="Link do YouTube">
-  <button onclick="addMV()">Adicionar MV</button>
+<h2>MVs</h2>
+<div id="videos"></div>
 
-  <h3>Seus MVs</h3>
-  <div id="myMVs"></div>
-</div>
+<!-- Firebase -->
+<script type="module">
 
-<h2>Ranking</h2>
-<div id="mvList"></div>
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  getDocs,
+  updateDoc,
+  doc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-<script>
+/* COLE AQUI OS DADOS DO SEU FIREBASE */
 const firebaseConfig = {
   apiKey: "AIzaSyDa1Lm_bSz18M11gT0CZio-CG0mOqvBd7I",
   authDomain: "mvzone-29363.firebaseapp.com",
-  projectId: "mvzone-29363"
+  projectId: "mvzone-29363",
+  storageBucket: "mvzone-29363.firebasestorage.app",
+  messagingSenderId: "927971258967",
+  appId: "1:927971258967:web:37ebd9479ecfa643f7e912"
 };
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-let currentUser = null;
-let userVoteId = localStorage.getItem("voteId") || crypto.randomUUID();
-localStorage.setItem("voteId", userVoteId);
+/* Converte qualquer link do YouTube para EMBED */
+function convertToEmbed(url) {
+    let videoId = "";
 
-function enterVisitor(){
-  currentUser = {type:"visitor"};
-  document.getElementById("loginArea").classList.add("hidden");
+    if (url.includes("youtu.be")) {
+        videoId = url.split("youtu.be/")[1].split("?")[0];
+    } 
+    else if (url.includes("watch?v=")) {
+        videoId = url.split("watch?v=")[1].split("&")[0];
+    }
+    else if (url.includes("embed/")) {
+        return url;
+    }
+
+    return "https://www.youtube.com/embed/" + videoId;
 }
 
-function enterCompany(){
-  const name = document.getElementById("companyName").value;
-  const pass = document.getElementById("companyPass").value;
-  if(!name || !pass) return alert("Preencha tudo");
+/* Adicionar MV */
+window.addMV = async function () {
+    const artist = document.getElementById("artist").value;
+    const title = document.getElementById("title").value;
+    const youtube = document.getElementById("youtube").value;
 
-  currentUser = {type:"company", name:name};
-  document.getElementById("loginArea").classList.add("hidden");
-  document.getElementById("companyPanel").classList.remove("hidden");
-  loadArtists();
-  loadMyMVs();
-}
+    const embedUrl = convertToEmbed(youtube);
 
-function addArtist(){
-  const artist = document.getElementById("artistName").value;
-  if(!artist) return;
-  db.collection("artists").add({
-    name:artist,
-    company:currentUser.name
-  });
-  loadArtists();
-}
-
-function loadArtists(){
-  db.collection("artists")
-  .where("company","==",currentUser.name)
-  .onSnapshot(snap=>{
-    const select = document.getElementById("artistSelect");
-    select.innerHTML="";
-    snap.forEach(doc=>{
-      select.innerHTML+=`<option>${doc.data().name}</option>`;
+    await addDoc(collection(db, "mvs"), {
+        artist: artist,
+        title: title,
+        youtubeUrl: embedUrl,
+        likes: 0
     });
-  });
-}
 
-async function addMV(){
-  const link = document.getElementById("mvLink").value;
-  const artist = document.getElementById("artistSelect").value;
-  if(!link || !artist) return;
+    loadVideos();
+};
 
-  const oneWeekAgo = new Date();
-  oneWeekAgo.setDate(oneWeekAgo.getDate()-7);
+/* Curtir */
+window.likeVideo = async function (id, likes) {
+    const ref = doc(db, "mvs", id);
+    await updateDoc(ref, {
+        likes: likes + 1
+    });
+    loadVideos();
+};
 
-  const check = await db.collection("mvzone")
-  .where("company","==",currentUser.name)
-  .where("timestamp",">",oneWeekAgo)
-  .get();
+/* Descurtir */
+window.dislikeVideo = async function (id, likes) {
+    const ref = doc(db, "mvs", id);
+    await updateDoc(ref, {
+        likes: likes - 1
+    });
+    loadVideos();
+};
 
-  if(!check.empty) return alert("Você só pode postar 1 MV por semana");
+/* Carregar vídeos */
+async function loadVideos() {
+    const container = document.getElementById("videos");
+    container.innerHTML = "";
 
-  const expires = new Date();
-  expires.setDate(expires.getDate()+30);
+    const querySnapshot = await getDocs(collection(db, "mvs"));
 
-  db.collection("mvzone").add({
-    artist,
-    company:currentUser.name,
-    url:link,
-    likes:0,
-    dislikes:0,
-    score:0,
-    timestamp:new Date(),
-    expiresAt:expires
-  });
-}
+    querySnapshot.forEach((docItem) => {
+        const data = docItem.data();
 
-function removeMV(id){
-  db.collection("mvzone").doc(id).delete();
-}
-
-function loadMyMVs(){
-  db.collection("mvzone")
-  .where("company","==",currentUser.name)
-  .onSnapshot(snap=>{
-    const div = document.getElementById("myMVs");
-    div.innerHTML="";
-    snap.forEach(doc=>{
-      div.innerHTML+=`
-        <div>
-          ${doc.data().artist}
-          <button onclick="removeMV('${doc.id}')">Remover</button>
+        container.innerHTML += `
+        <div class="video">
+            <h3>${data.artist} - ${data.title}</h3>
+            <iframe src="${data.youtubeUrl}" frameborder="0" allowfullscreen></iframe>
+            <p>Pontos: ${data.likes}</p>
+            <button onclick="likeVideo('${docItem.id}', ${data.likes})">👍</button>
+            <button onclick="dislikeVideo('${docItem.id}', ${data.likes})">👎</button>
         </div>
-      `;
+        `;
     });
-  });
 }
 
-function vote(id,value){
-  const voteRef = db.collection("votes").doc(id+"_"+userVoteId);
-  voteRef.get().then(doc=>{
-    if(doc.exists) return alert("Você já votou");
-    voteRef.set({voted:true});
+loadVideos();
 
-    const mvRef = db.collection("mvzone").doc(id);
-    mvRef.update({
-      score:firebase.firestore.FieldValue.increment(value),
-      likes: value==1 ? firebase.firestore.FieldValue.increment(1) : firebase.firestore.FieldValue.increment(0),
-      dislikes: value==-1 ? firebase.firestore.FieldValue.increment(1) : firebase.firestore.FieldValue.increment(0)
-    });
-  });
-}
-
-function loadMVs(){
-  db.collection("mvzone")
-  .orderBy("score","desc")
-  .onSnapshot(snap=>{
-    const list = document.getElementById("mvList");
-    list.innerHTML="";
-    let position=1;
-    snap.forEach(doc=>{
-      const d=doc.data();
-      if(new Date(d.expiresAt.seconds*1000) < new Date()){
-        db.collection("mvzone").doc(doc.id).delete();
-        return;
-      }
-      list.innerHTML+=`
-        <div class="card">
-          <div class="rank">#${position}</div>
-          <h3>${d.artist}</h3>
-          <p>${d.company}</p>
-          <iframe width="300" height="200" src="${d.url.replace("watch?v=","embed/")}" frameborder="0"></iframe>
-          <p>Score: ${d.score}</p>
-          <button onclick="vote('${doc.id}',1)">👍 ${d.likes}</button>
-          <button onclick="vote('${doc.id}',-1)">👎 ${d.dislikes}</button>
-        </div>
-      `;
-      position++;
-    });
-  });
-}
-
-loadMVs();
 </script>
+
 </body>
 </html>
