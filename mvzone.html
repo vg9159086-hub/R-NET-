@@ -9,255 +9,299 @@
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
 <style>
-body{
-  margin:0;
-  font-family:Arial;
-  background:#0f0f0f;
-  color:white;
-}
-
-header{
-  background:#111;
-  padding:10px;
-  text-align:center;
-}
-
-.logo{height:55px;}
-
-nav button{
-  background:#ff0055;
-  color:white;
-  border:none;
-  padding:8px 14px;
-  margin:5px;
-  border-radius:6px;
-  cursor:pointer;
-}
-
-.card{
-  background:#181818;
-  padding:15px;
-  margin:15px;
-  border-radius:12px;
-  transition:0.4s;
-  animation:fadeIn 0.4s ease;
-}
-
-.card.move{
-  transform:translateY(-6px);
-}
-
-.voteImg{
-  width:40px;
-  cursor:pointer;
-  margin:6px;
-}
-
-.hidden{display:none;}
-
-.trophy{color:gold;}
-
-.top1{
-  border:2px solid gold;
-  box-shadow:0 0 15px gold;
-  animation:glowPulse 1.5s infinite alternate;
-}
-
-@keyframes glowPulse{
-  from{ box-shadow:0 0 10px gold; }
-  to{ box-shadow:0 0 30px gold; }
-}
-
-@keyframes fadeIn{
-from{opacity:0; transform:translateY(15px);}
-to{opacity:1; transform:translateY(0);}
-}
-
-/* REGRAS */
-#rulesScreen{
-  position:fixed;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
-  background:#0f0f0f;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index:9999;
-}
-
-.rulesBox{
-  background:#181818;
-  padding:25px;
-  border-radius:12px;
-  text-align:center;
-}
+body{margin:0;font-family:Arial;background:#0f0f0f;color:white}
+header{background:#111;padding:10px;text-align:center}
+.logo{height:55px}
+nav button{background:#ff0055;color:white;border:none;padding:8px 14px;margin:5px;border-radius:6px;cursor:pointer}
+.card{background:#181818;padding:15px;margin:15px;border-radius:12px;transition:0.3s}
+.voteImg{width:40px;cursor:pointer;margin:6px}
+.hidden{display:none}
+.top1{border:2px solid gold;box-shadow:0 0 20px gold;animation:glow 1.5s infinite alternate}
+@keyframes glow{from{box-shadow:0 0 10px gold}to{box-shadow:0 0 30px gold}}
+input{padding:8px;margin:5px;border-radius:6px;border:none}
+button{cursor:pointer}
 </style>
 </head>
 
 <body>
 
-<div id="rulesScreen">
-  <div class="rulesBox">
-    <h2>Regras do MVZONE</h2>
-    <p>Os votos são ilimitados, use com sabedoria e apoie seu artista.</p>
-    <p>Dê chance a todos os MVs do MVZONE.</p>
-    <button onclick="acceptRules()">Concordo</button>
-  </div>
+<!-- LOGIN -->
+<div id="loginScreen" style="text-align:center;padding:40px">
+<h2>Entrar como:</h2>
+<button onclick="showCompanyLogin()">Empresa</button>
+<button onclick="enterVisitor()">Visitante</button>
+
+<div id="companyLogin" class="hidden">
+<h3>Login Empresa</h3>
+<input id="companyName" placeholder="Nome da empresa"><br>
+<input id="companyPass" type="password" placeholder="Senha"><br>
+<button onclick="loginCompany()">Entrar</button>
+<button onclick="registerCompany()">Cadastrar</button>
+</div>
 </div>
 
+<!-- SITE -->
+<div id="site" class="hidden">
+
 <header>
-  <img src="logo.png" class="logo">
-  <nav>
-    <button onclick="showCharts()">Charts</button>
-    <button onclick="showHistory()">História</button>
-    <button onclick="showHall()">Hall da Fama</button>
-  </nav>
+<img src="logo.png" class="logo">
+<nav>
+<button onclick="showCharts()">Charts</button>
+<button onclick="showHistory()">História</button>
+<button onclick="showHall()">Hall da Fama</button>
+<button id="logoutBtn" onclick="logout()" class="hidden">Sair</button>
+</nav>
 </header>
+
+<div id="companyPanel" class="hidden" style="padding:20px">
+<h3>Adicionar MV</h3>
+<input id="artistInput" placeholder="Nome do artista"><br>
+<input id="musicInput" placeholder="Nome da música"><br>
+<input id="urlInput" placeholder="URL YouTube"><br>
+<button onclick="addMV()">Adicionar</button>
+</div>
 
 <div id="charts"></div>
 
-<div id="history" class="hidden" style="padding:20px;">
+<div id="history" class="hidden" style="padding:20px">
 <h2>Sobre o R-net</h2>
 <p>
 o R-net surgiu de uma ideia rescente, após uma reunião de colaboradores surgiu o R-net, esse site consiste em existir um chart automático para o Rpop e KUV, ele atualiza automaticamente, toda semana o placar zera e começa novamente, depois de 30 dias os MVS são removidos e podem ser adicionados apenas MVS rescentes (2 meses) no máximo, os grupos/solistas contam com seus fãs para ganhar o primeiro lugar na parada musical do rpop/kuv, contamos com o apoio de todos vocês para crescermos a popularidade de cada um
 </p>
 </div>
 
-<div id="hall" class="hidden"></div>
+<div id="hall" class="hidden" style="padding:20px"></div>
+
+</div>
 
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyDa1Lm_bSz18M11gT0CZio-CG0mOqvBd7I",
+const firebaseConfig={
+apiKey: "AIzaSyDa1Lm_bSz18M11gT0CZio-CG0mOqvBd7I",
   authDomain: "mvzone-29363.firebaseapp.com",
   projectId: "mvzone-29363",
   };
 
 firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+const db=firebase.firestore();
 
-const charts = document.getElementById("charts");
-const historyDiv = document.getElementById("history");
-const hall = document.getElementById("hall");
-const rulesScreen = document.getElementById("rulesScreen");
+let currentCompany=null;
+let currentFirst=null;
+const victorySound=new Audio("victory.mp3");
 
-let lastPositions = {};
-let currentFirst = null;
-const victorySound = new Audio("victory.mp3");
-
-/* REGRAS */
-function acceptRules(){
-  localStorage.setItem("rulesAccepted","yes");
-  rulesScreen.style.display="none";
-}
-if(localStorage.getItem("rulesAccepted")==="yes"){
-  rulesScreen.style.display="none";
+/* LOGIN */
+function showCompanyLogin(){
+document.getElementById("companyLogin").classList.remove("hidden");
 }
 
-/* NAVEGAÇÃO */
-function showCharts(){
-  charts.classList.remove("hidden");
-  historyDiv.classList.add("hidden");
-  hall.classList.add("hidden");
-}
-function showHistory(){
-  charts.classList.add("hidden");
-  historyDiv.classList.remove("hidden");
-  hall.classList.add("hidden");
-}
-function showHall(){
-  charts.classList.add("hidden");
-  historyDiv.classList.add("hidden");
-  hall.classList.remove("hidden");
-
-  hall.innerHTML="<h2>🏆 Hall da Fama Mensal</h2>";
-
-  db.collection("hallOfFame")
-  .orderBy("createdAt","desc")
-  .onSnapshot(snapshot=>{
-    hall.innerHTML="<h2>🏆 Hall da Fama Mensal</h2>";
-    snapshot.forEach(doc=>{
-      const d=doc.data();
-      hall.innerHTML+=`
-      <div class="card">
-      <h3>${d.month}</h3>
-      <p><b>${d.artist}</b> - ${d.title}</p>
-      <p>Empresa: ${d.company||"-"}</p>
-      <p>Pontos: ${d.points}</p>
-      </div>`;
-    });
-  });
+function enterVisitor(){
+document.getElementById("loginScreen").classList.add("hidden");
+document.getElementById("site").classList.remove("hidden");
 }
 
-/* CONFETE */
-function launchConfetti(){
-  confetti({particleCount:150,spread:100,origin:{y:0.6}});
+async function registerCompany(){
+const name=companyName.value;
+const pass=companyPass.value;
+await db.collection("companies").doc(name).set({password:pass});
+alert("Empresa cadastrada!");
 }
 
-/* RESET SEMANAL + CONFIG */
-async function ensureConfig(){
-  const ref=db.collection("system").doc("config");
-  const doc=await ref.get();
-  if(!doc.exists){
-    await ref.set({lastReset:"",lastMonthly:""});
-  }
+async function loginCompany(){
+const name=companyName.value;
+const pass=companyPass.value;
+const doc=await db.collection("companies").doc(name).get();
+if(doc.exists && doc.data().password===pass){
+currentCompany=name;
+document.getElementById("loginScreen").classList.add("hidden");
+document.getElementById("site").classList.remove("hidden");
+document.getElementById("companyPanel").classList.remove("hidden");
+document.getElementById("logoutBtn").classList.remove("hidden");
+}else{
+alert("Login inválido");
 }
-ensureConfig();
+}
+
+function logout(){
+location.reload();
+}
+
+/* ADICIONAR MV */
+async function addMV(){
+if(!currentCompany)return;
+await db.collection("mvs").add({
+artist:artistInput.value,
+title:musicInput.value,
+url:urlInput.value,
+company:currentCompany,
+points:0,
+createdAt:firebase.firestore.FieldValue.serverTimestamp()
+});
+artistInput.value="";
+musicInput.value="";
+urlInput.value="";
+}
 
 /* VOTAR */
-async function vote(id,value){
-  const ref=db.collection("mvs").doc(id);
-  const doc=await ref.get();
-  await ref.update({points:(doc.data().points||0)+value});
+async function vote(id,val){
+const ref=db.collection("mvs").doc(id);
+const doc=await ref.get();
+await ref.update({points:(doc.data().points||0)+val});
 }
 
-/* CHART AO VIVO */
+/* REMOVER MV ANTIGO */
+async function removeOld(){
+const now=new Date();
+const snap=await db.collection("mvs").get();
+snap.forEach(doc=>{
+if(!doc.data().createdAt)return;
+const days=(now-doc.data().createdAt.toDate())/(1000*60*60*24);
+if(days>30)doc.ref.delete();
+});
+}
+removeOld();
+
+/* CHART */
 db.collection("mvs").orderBy("points","desc")
-.onSnapshot(snapshot=>{
-  charts.innerHTML="";
-  let position=1;
-  let newFirst=null;
+.onSnapshot(snap=>{
+charts.innerHTML="";
+let pos=1;
+let newFirst=null;
 
-  snapshot.forEach(doc=>{
-    const d=doc.data();
-    if(position===1) newFirst=doc.id;
+snap.forEach(doc=>{
+const d=doc.data();
+if(pos===1)newFirst=doc.id;
 
-    let moveClass="";
-    if(lastPositions[doc.id] && lastPositions[doc.id]!==position){
-      moveClass="move";
-    }
-    lastPositions[doc.id]=position;
-
-    charts.innerHTML+=`
-    <div class="card ${moveClass} ${position===1?'top1':''}">
-    <h3>#${position} ${d.artist} ${position===1?'🏆':''}</h3>
-    <p>${d.title}</p>
-    <p>Empresa: ${d.company||"-"}</p>
-    <iframe width="100%" height="220"
-    src="https://www.youtube.com/embed/${extractID(d.url)}"
-    frameborder="0" allowfullscreen></iframe>
-    <p>Pontos: ${d.points||0}</p>
-    <img src="like.png" class="voteImg" onclick="vote('${doc.id}',1)">
-    <img src="deslike.png" class="voteImg" onclick="vote('${doc.id}',-1)">
-    </div>`;
-
-    position++;
-  });
-
-  if(currentFirst && currentFirst!==newFirst){
-    victorySound.play();
-    launchConfetti();
-  }
-  currentFirst=newFirst;
+charts.innerHTML+=`
+<div class="card ${pos===1?'top1':''}">
+<h3>#${pos} ${d.artist} ${pos===1?'🏆':''}</h3>
+<p>${d.title}</p>
+<p>Empresa: ${d.company}</p>
+<iframe width="100%" height="220"
+src="https://www.youtube.com/embed/${extractID(d.url)}"
+frameborder="0" allowfullscreen></iframe>
+<p>Pontos: ${d.points||0}</p>
+<img src="like.png" class="voteImg" onclick="vote('${doc.id}',1)">
+<img src="deslike.png" class="voteImg" onclick="vote('${doc.id}',-1)">
+${currentCompany===d.company?`<button onclick="deleteMV('${doc.id}')">Remover</button>`:""}
+</div>`;
+pos++;
 });
 
-/* YT ID */
-function extractID(url){
-  const regExp=/(?:youtube\.com\/.*v=|youtu\.be\/)([^&]+)/;
-  const match=url.match(regExp);
-  return match?match[1]:"";
+if(currentFirst && currentFirst!==newFirst){
+victorySound.play();
+confetti({particleCount:200,spread:100});
 }
+currentFirst=newFirst;
+});
+
+/* DELETAR */
+async function deleteMV(id){
+await db.collection("mvs").doc(id).delete();
+}
+
+/* HALL */
+function showHall(){
+charts.classList.add("hidden");
+history.classList.add("hidden");
+hall.classList.remove("hidden");
+
+db.collection("mvs").orderBy("points","desc").limit(1).get()
+.then(snap=>{
+hall.innerHTML="<h2>🏆 Líder Atual</h2>";
+snap.forEach(doc=>{
+const d=doc.data();
+hall.innerHTML+=`<div class="card">
+<h3>${d.artist}</h3>
+<p>${d.title}</p>
+<p>${d.points} pontos</p>
+</div>`;
+});
+});
+}
+
+function showCharts(){
+charts.classList.remove("hidden");
+history.classList.add("hidden");
+hall.classList.add("hidden");
+}
+
+function showHistory(){
+charts.classList.add("hidden");
+history.classList.remove("hidden");
+hall.classList.add("hidden");
+}
+
+function extractID(url){
+const regExp=/(?:youtube\.com\/.*v=|youtu\.be\/)([^&]+)/;
+const match=url.match(regExp);
+return match?match[1]:"";
+}
+
+  // =========================
+// RESET SEMANAL
+// =========================
+
+async function weeklyReset(){
+
+  const today = new Date();
+
+  // Descobre a segunda-feira da semana atual
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - today.getDay() + 1);
+  const weekString = monday.toISOString().split("T")[0];
+
+  const configRef = db.collection("system").doc("config");
+  const configDoc = await configRef.get();
+
+  if(!configDoc.exists){
+    await configRef.set({ lastReset: "" });
+    return;
+  }
+
+  // Se já resetou essa semana, não faz nada
+  if(configDoc.data().lastReset === weekString) return;
+
+  // Pega ranking atual
+  const snap = await db.collection("mvs")
+    .orderBy("points","desc")
+    .get();
+
+  let ranking = [];
+  let pos = 1;
+
+  for(const doc of snap.docs){
+    const d = doc.data();
+
+    ranking.push({
+      artist:d.artist,
+      title:d.title,
+      company:d.company,
+      points:d.points,
+      position:pos
+    });
+
+    // Zera pontos
+    await doc.ref.update({ points:0 });
+
+    pos++;
+  }
+
+  // Salva histórico da semana
+  await db.collection("weeklyCharts").doc(weekString).set({
+    week:weekString,
+    ranking:ranking,
+    createdAt:firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  // Marca que já resetou
+  await configRef.update({
+    lastReset:weekString
+  });
+
+  console.log("Ranking semanal salvo:", weekString);
+}
+
+// Executa ao abrir o site
+weeklyReset();
 </script>
 
 </body>
