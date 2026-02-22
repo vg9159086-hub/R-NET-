@@ -1,65 +1,34 @@
-<!DOCTYPE html>
-<html lang="pt-br">
+<!DOCTYPE html><html lang="pt">
 <head>
 <meta charset="UTF-8">
-<title>MVZONE</title>
+<title>MV Zone</title><style>
+body{font-family:Arial;background:#111;color:#fff;text-align:center}
+input,button{padding:8px;margin:5px}
+.mv{border:1px solid #444;padding:10px;margin:15px}
+.rank{font-size:20px;color:#00ffcc}
+img.btn{width:40px;cursor:pointer}
+.comment{background:#222;padding:5px;margin:5px}
+</style></head><body><h1>MV Zone</h1><div id="login">
+<h3>Login</h3>
+<input id="email" placeholder="Email"><br>
+<input id="senha" type="password" placeholder="Senha"><br><select id="tipo">
+<option value="visitante">Visitante</option>
+<option value="empresa">Empresa</option>
+</select><br><input id="empresaNome" placeholder="Nome da Empresa (se empresa)"><br>
 
-<style>
-body {
-    font-family: Arial;
-    background: #111;
-    color: white;
-    text-align: center;
-}
+<button onclick="registrar()">Registrar</button>
+<button onclick="entrar()">Entrar</button>
 
-input, button {
-    padding: 8px;
-    margin: 5px;
-}
+</div><div id="painel" style="display:none"><h3>Postar MV (Empresa)</h3>
+<input id="artist" placeholder="Artista"><br>
+<input id="link" placeholder="Link Embed (youtube.com/embed/...)"><br>
+<button onclick="postarMV()">Postar</button><h2>Chart Semanal</h2>
+<div id="lista"></div></div><script type="module">
 
-.video {
-    border: 1px solid #444;
-    padding: 10px;
-    margin: 15px;
-}
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, addDoc, collection, getDocs, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-iframe {
-    width: 300px;
-    height: 170px;
-}
-</style>
-</head>
-<body>
-
-<h1>MVZONE</h1>
-
-<h2>Cadastrar MV</h2>
-
-<input id="artist" placeholder="Artista">
-<input id="title" placeholder="Título do MV">
-<input id="youtube" placeholder="Link do YouTube">
-<br>
-<button onclick="addMV()">Cadastrar</button>
-
-<hr>
-
-<h2>MVs</h2>
-<div id="videos"></div>
-
-<!-- Firebase -->
-<script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  getDocs,
-  updateDoc,
-  doc
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-/* COLE AQUI OS DADOS DO SEU FIREBASE */
 const firebaseConfig = {
   apiKey: "AIzaSyDa1Lm_bSz18M11gT0CZio-CG0mOqvBd7I",
   authDomain: "mvzone-29363.firebaseapp.com",
@@ -70,86 +39,169 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const auth = getAuth();
+const db = getFirestore();
 
-/* Converte qualquer link do YouTube para EMBED */
-function convertToEmbed(url) {
-    let videoId = "";
+let userData = null;
 
-    if (url.includes("youtu.be")) {
-        videoId = url.split("youtu.be/")[1].split("?")[0];
-    } 
-    else if (url.includes("watch?v=")) {
-        videoId = url.split("watch?v=")[1].split("&")[0];
-    }
-    else if (url.includes("embed/")) {
-        return url;
-    }
+// REGISTRAR
+window.registrar = async ()=>{
+let email=email.value;
+let senha=senha.value;
+let tipo=tipo.value;
+let nomeEmpresa=empresaNome.value;
 
-    return "https://www.youtube.com/embed/" + videoId;
+let cred=await createUserWithEmailAndPassword(auth,email,senha);
+
+await setDoc(doc(db,"users",cred.user.uid),{
+tipo:tipo,
+empresa:nomeEmpresa
+});
 }
 
-/* Adicionar MV */
-window.addMV = async function () {
-    const artist = document.getElementById("artist").value;
-    const title = document.getElementById("title").value;
-    const youtube = document.getElementById("youtube").value;
-
-    const embedUrl = convertToEmbed(youtube);
-
-    await addDoc(collection(db, "mvs"), {
-        artist: artist,
-        title: title,
-        youtubeUrl: embedUrl,
-        likes: 0
-    });
-
-    loadVideos();
-};
-
-/* Curtir */
-window.likeVideo = async function (id, likes) {
-    const ref = doc(db, "mvs", id);
-    await updateDoc(ref, {
-        likes: likes + 1
-    });
-    loadVideos();
-};
-
-/* Descurtir */
-window.dislikeVideo = async function (id, likes) {
-    const ref = doc(db, "mvs", id);
-    await updateDoc(ref, {
-        likes: likes - 1
-    });
-    loadVideos();
-};
-
-/* Carregar vídeos */
-async function loadVideos() {
-    const container = document.getElementById("videos");
-    container.innerHTML = "";
-
-    const querySnapshot = await getDocs(collection(db, "mvs"));
-
-    querySnapshot.forEach((docItem) => {
-        const data = docItem.data();
-
-        container.innerHTML += `
-        <div class="video">
-            <h3>${data.artist} - ${data.title}</h3>
-            <iframe src="${data.youtubeUrl}" frameborder="0" allowfullscreen></iframe>
-            <p>Pontos: ${data.likes}</p>
-            <button onclick="likeVideo('${docItem.id}', ${data.likes})">👍</button>
-            <button onclick="dislikeVideo('${docItem.id}', ${data.likes})">👎</button>
-        </div>
-        `;
-    });
+// LOGIN
+window.entrar = ()=>{
+signInWithEmailAndPassword(auth,email.value,senha.value);
 }
 
-loadVideos();
+// ESTADO LOGIN
+onAuthStateChanged(auth, async(user)=>{
+if(user){
+document.getElementById("login").style.display="none";
+document.getElementById("painel").style.display="block";
 
-</script>
+let docu=await getDoc(doc(db,"users",user.uid));
+userData=docu.data();
 
-</body>
+carregarMVs();
+}
+});
+
+// POSTAR MV (1 por semana)
+window.postarMV = async()=>{
+if(userData.tipo!="empresa"){alert("Apenas empresas");return;}
+
+let semana=Date.now() - 7*24*60*60*1000;
+let q=await getDocs(collection(db,"mvs"));
+let pode=true;
+
+q.forEach(d=>{
+let mv=d.data();
+if(mv.uid==auth.currentUser.uid && mv.data>semana){
+pode=false;
+}
+});
+
+if(!pode){alert("Você só pode postar 1 MV por semana");return;}
+
+await addDoc(collection(db,"mvs"),{
+artist:artist.value,
+link:link.value,
+likes:0,
+data:Date.now(),
+uid:auth.currentUser.uid,
+empresa:userData.empresa
+});
+
+carregarMVs();
+}
+
+// CARREGAR MVs
+async function carregarMVs(){
+let lista=document.getElementById("lista");
+lista.innerHTML="";
+
+let semana=Date.now() - 7*24*60*60*1000;
+
+let q=query(collection(db,"mvs"),orderBy("likes","desc"));
+let snap=await getDocs(q);
+
+let rank=1;
+
+snap.forEach(docu=>{
+let mv=docu.data();
+if(mv.data<semana) return;
+
+let div=document.createElement("div");
+div.className="mv";
+
+div.innerHTML=`
+<div class="rank">#${rank}</div>
+<h3>${mv.artist} - ${mv.empresa}</h3>
+<iframe width="300" height="170" src="${mv.link}" allowfullscreen></iframe><br>
+
+<img src="like.png" class="btn" onclick="like('${docu.id}',1)">
+<img src="deslike.png" class="btn" onclick="like('${docu.id}',-1)">
+<p>Pontos: ${mv.likes}</p>
+
+<input id="c-${docu.id}" placeholder="Comentar">
+<button onclick="comentar('${docu.id}')">Enviar</button>
+
+<div id="com-${docu.id}"></div>
+`;
+
+lista.appendChild(div);
+
+carregarComentarios(docu.id);
+
+rank++;
+});
+}
+
+// LIKE
+window.like = async(id,valor)=>{
+let ref=doc(db,"mvs",id);
+let snap=await getDoc(ref);
+await updateDoc(ref,{
+likes:snap.data().likes + valor
+});
+carregarMVs();
+}
+
+// COMENTAR
+window.comentar = async(id)=>{
+let texto=document.getElementById("c-"+id).value;
+
+await addDoc(collection(db,"comentarios"),{
+mv:id,
+texto:texto,
+user:auth.currentUser.email,
+uid:auth.currentUser.uid
+});
+
+carregarComentarios(id);
+}
+
+// CARREGAR COMENTARIOS
+async function carregarComentarios(id){
+let div=document.getElementById("com-"+id);
+if(!div) return;
+div.innerHTML="";
+
+let snap=await getDocs(collection(db,"comentarios"));
+
+snap.forEach(d=>{
+let c=d.data();
+if(c.mv==id){
+let el=document.createElement("div");
+el.className="comment";
+
+let del="";
+if(c.uid==auth.currentUser.uid){
+del=`<button onclick="apagar('${d.id}','${id}')">X</button>`;
+}
+
+el.innerHTML=`${c.user}: ${c.texto} ${del}`;
+div.appendChild(el);
+}
+});
+}
+
+// APAGAR COMENTARIO
+window.apagar = async(cid,id)=>{
+await deleteDoc(doc(db,"comentarios",cid));
+carregarComentarios(id);
+}
+
+</script></body>
 </html>
