@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>R-net Revista</title>
+
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
@@ -10,82 +11,109 @@
 <style>
 body{
   margin:0;
-  font-family:Arial;
-  background:#0f0f0f;
-  color:white;
+  font-family:Arial, sans-serif;
+  background:#f0f0f0;
 }
+
 header{
   background:#111;
   padding:10px;
   text-align:center;
+  color:white;
 }
-.logo{height:55px; margin-bottom:5px;}
-#rulesScreen{
-  position:fixed; top:0; left:0; width:100%; height:100%;
-  background:#0f0f0f; display:flex; align-items:center; justify-content:center; z-index:9999; text-align:center;
+
+.logo{height:60px;}
+
+#adminPanel{
+  display:none;
+  padding:20px;
+  background:#222;
+  color:white;
 }
-.rulesBox{
-  background:#181818; padding:25px; border-radius:12px; max-width:400px;
+
+#adminPanel input, #adminPanel textarea{
+  width:100%;
+  padding:8px;
+  margin:5px 0;
+  border-radius:6px;
+  border:none;
 }
-.rulesBox button{
-  background:#ff0055; color:white; border:none; padding:10px 20px; margin-top:15px; border-radius:6px; cursor:pointer;
+
+#adminPanel button{
+  background:#ff0055;
+  color:white;
+  border:none;
+  padding:10px 20px;
+  border-radius:6px;
+  cursor:pointer;
+  margin-top:10px;
 }
-#revistaContainer{
-  display:flex; flex-wrap:wrap; justify-content:center; padding:20px;
+
+#posts{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  padding:20px;
 }
-.revistaCard{
-  width:300px; background:#fffa8c; color:#111;
-  margin:15px; padding:15px; border-radius:12px;
-  box-shadow: 0 0 8px #000;
-  position:relative; transition:0.4s;
+
+.post{
+  width:300px;
+  background:linear-gradient(135deg, #fff4a3, #ffd1dc, #b3ffb3, #ffd8a6);
+  margin:15px;
+  padding:15px;
+  border-radius:12px;
+  box-shadow:0 4px 8px rgba(0,0,0,0.2);
+  position:relative;
 }
-.revistaCard img{ width:100%; border-radius:8px; margin-bottom:8px;}
-.adminControls{ display:flex; justify-content:space-between; margin-bottom:10px;}
-.adminControls button{
-  background:#ff0055; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-size:12px;
+
+.post img{
+  width:100%;
+  border-radius:8px;
+  margin-top:10px;
 }
-input, textarea{ width:100%; margin-bottom:8px; padding:6px; border-radius:6px; border:none;}
-#adminPanel{ background:#222; padding:15px; margin:15px; border-radius:12px; max-width:400px;}
-.newLabel{ position:absolute; top:8px; right:8px; background:#ff0055; color:white; padding:4px 6px; font-size:12px; border-radius:6px;}
+
+.deleteBtn{
+  position:absolute;
+  top:5px;
+  right:5px;
+  background:red;
+  color:white;
+  border:none;
+  border-radius:50%;
+  width:25px;
+  height:25px;
+  cursor:pointer;
+}
+
+.hidden{display:none;}
 </style>
 </head>
 <body>
 
-<!-- TELA DE REGRAS -->
-<div id="rulesScreen">
-  <div class="rulesBox">
-    <h2>Regras da Revista R-net</h2>
-    <p>Somente o administrador pode postar ou editar as revistas.</p>
-    <p>Visitantes podem apenas ler e curtir!</p>
-    <button onclick="acceptRules()">Concordo</button>
-  </div>
-</div>
-
 <header>
   <img src="logo.png" class="logo">
-  <h1>Revista Mensal R-net</h1>
+  <h1>R-net Revista</h1>
 </header>
 
-<!-- ADMIN PANEL -->
-<div id="adminPanel" class="hidden">
-  <h3>Postar nova edição</h3>
-  <input type="text" id="titulo" placeholder="Título da edição">
-  <input type="date" id="dataPub">
-  <input type="text" id="horaPub" placeholder="Hora da publicação">
-  <input type="file" id="capaFile" accept="image/*">
-  <textarea id="conteudo" placeholder="Conteúdo da revista"></textarea>
-  <button id="postBtn">Postar</button>
+<!-- Admin Panel -->
+<div id="adminPanel">
+  <h2>Adicionar Notícia</h2>
+  <input type="text" id="newsTitle" placeholder="Título da notícia">
+  <input type="text" id="newsIdol" placeholder="Nome do Idol / Assunto">
+  <input type="file" id="newsImage">
+  <textarea id="newsContent" placeholder="Escreva a notícia aqui..."></textarea>
+  <button onclick="addNews()">Publicar</button>
 </div>
 
-<div id="revistaContainer"></div>
+<!-- Mural -->
+<div id="posts"></div>
 
 <script>
-// ==================== FIREBASE CONFIG ====================
 const firebaseConfig = {
   apiKey: "AIzaSyCUFift2BuvD433AYTBVNGCNli2PtBMalo",
   authDomain: "rnetnews-273fc.firebaseapp.com",
   projectId: "rnetnews-273fc",
-  storageBucket: "rnetnews-273fc.firebasestorage.app",
+  storageBucket: "rnetnews-273fc.appspot.com",
   messagingSenderId: "856234559611",
   appId: "1:856234559611:web:4b051c2fd1d8f9cb67fade"
 };
@@ -93,89 +121,91 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const storage = firebase.storage();
 
-// ==================== REGRAS ====================
-function acceptRules(){
-  localStorage.setItem("rulesAccepted","yes");
-  document.getElementById("rulesScreen").style.display="none";
-}
-if(localStorage.getItem("rulesAccepted")==="yes"){
-  document.getElementById("rulesScreen").style.display="none";
-}
+// Seu UID de admin
+const adminUID = "ITxtdznlxEeXhDoSFcfjYCge6gn1";
 
-// ==================== ADMIN CHECK ====================
-const ADMIN_UID = "ITxtdznlxEeXhDoSFcfjYCge6gn1";
-let isAdmin = false;
+// ============================
+// LOGIN SIMPLIFICADO
+// ============================
+let userUID = prompt("Digite seu UID para login (ou deixe vazio para visitante):");
 
-function askUID(){
-  const uid = prompt("Digite o código de administrador:");
-  if(uid === ADMIN_UID){
-    isAdmin = true;
-    document.getElementById("adminPanel").classList.remove("hidden");
-  } else {
-    alert("Você está no modo visitante");
-  }
-}
-askUID();
+const isAdmin = userUID === adminUID;
+if(isAdmin) document.getElementById("adminPanel").style.display = "block";
 
-// ==================== POSTAR REVISTA ====================
-document.getElementById("postBtn").addEventListener("click", async ()=>{
-  const titulo = document.getElementById("titulo").value;
-  const dataPub = document.getElementById("dataPub").value;
-  const horaPub = document.getElementById("horaPub").value;
-  const conteudo = document.getElementById("conteudo").value;
-  const file = document.getElementById("capaFile").files[0];
+// ============================
+// ADICIONAR NOTÍCIA
+// ============================
+async function addNews(){
+  const title = document.getElementById("newsTitle").value.trim();
+  const idol = document.getElementById("newsIdol").value.trim();
+  const content = document.getElementById("newsContent").value.trim();
+  const file = document.getElementById("newsImage").files[0];
 
-  if(!titulo || !dataPub || !horaPub || !conteudo || !file){
-    alert("Preencha tudo!");
+  if(!title || !idol || !content || !file){
+    alert("Preencha todos os campos e selecione uma imagem.");
     return;
   }
 
-  const storageRef = storage.ref("capas/"+file.name);
+  // Upload da imagem
+  const storageRef = storage.ref('revista/'+file.name);
   await storageRef.put(file);
-  const fileURL = await storageRef.getDownloadURL();
+  const imageURL = await storageRef.getDownloadURL();
 
-  await db.collection("revistas").add({
-    titulo: titulo,
-    dataPub: dataPub,
-    horaPub: horaPub,
-    conteudo: conteudo,
-    capa: fileURL,
+  // Salvar notícia
+  await db.collection("revista").add({
+    title,
+    idol,
+    content,
+    imageURL,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   });
 
-  alert("Revista publicada!");
-  document.getElementById("titulo").value="";
-  document.getElementById("dataPub").value="";
-  document.getElementById("horaPub").value="";
-  document.getElementById("conteudo").value="";
-  document.getElementById("capaFile").value="";
-});
+  // Limpar campos
+  document.getElementById("newsTitle").value = "";
+  document.getElementById("newsIdol").value = "";
+  document.getElementById("newsContent").value = "";
+  document.getElementById("newsImage").value = "";
+}
 
-// ==================== CARREGAR REVISTAS ====================
-db.collection("revistas").orderBy("createdAt","desc").onSnapshot(snapshot=>{
-  const container = document.getElementById("revistaContainer");
-  container.innerHTML="";
+// ============================
+// EXIBIR POSTS
+// ============================
+db.collection("revista").orderBy("createdAt","desc")
+.onSnapshot(snapshot=>{
+  const postsDiv = document.getElementById("posts");
+  postsDiv.innerHTML = "";
+
   snapshot.forEach(doc=>{
-    const data = doc.data();
-    const card = document.createElement("div");
-    card.className="revistaCard";
+    const d = doc.data();
+    const postDiv = document.createElement("div");
+    postDiv.classList.add("post");
 
-    const now = new Date();
-    let newFace = "";
-    if(data.createdAt && (now - data.createdAt.toDate()) < 24*60*60*1000){
-      newFace = `<div class="newLabel">NEW FACE</div>`;
+    let deleteBtnHTML = "";
+    if(isAdmin){
+      deleteBtnHTML = `<button class="deleteBtn" onclick="deleteNews('${doc.id}')">X</button>`;
     }
 
-    card.innerHTML=`
-      ${newFace}
-      <img src="${data.capa}">
-      <h3>${data.titulo}</h3>
-      <p><b>Data:</b> ${data.dataPub} <b>Hora:</b> ${data.horaPub}</p>
-      <p>${data.conteudo}</p>
+    postDiv.innerHTML = `
+      ${deleteBtnHTML}
+      <h3>${d.title}</h3>
+      <h4>${d.idol}</h4>
+      <p>${d.content}</p>
+      ${d.imageURL?`<img src="${d.imageURL}">`:""}
     `;
-    container.appendChild(card);
+
+    postsDiv.appendChild(postDiv);
   });
 });
+
+// ============================
+// EXCLUIR NOTÍCIA
+// ============================
+async function deleteNews(id){
+  if(confirm("Deseja realmente apagar essa notícia?")){
+    await db.collection("revista").doc(id).delete();
+  }
+}
 </script>
+
 </body>
 </html>
