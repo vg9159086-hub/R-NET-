@@ -1,212 +1,175 @@
-<!DOCTYPE html>
-<html>
+<!DOCTYPE html><html>
 <head>
 <meta charset="UTF-8">
-<title>R-net Revista</title>
-
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
-
-<style>
+<title>R-NET News</title><script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script><style>
 body{
   margin:0;
   font-family:Arial;
-  background:#f0f0f0;
-  color:#111;
+  background:#0f0f0f;
 }
+
 header{
   background:#111;
-  padding:10px;
-  text-align:center;
-}
-.logo{height:55px;}
-
-#revistaContainer{
-  display:flex;
-  flex-wrap:wrap;
-  justify-content:center;
-  padding:20px;
-  gap:15px;
-}
-
-.revistaCard{
-  width:300px;
-  background:#fff8b0;
   padding:15px;
-  border-radius:15px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-  position:relative;
-  transition:0.3s;
+  text-align:center;
+  color:white;
+  font-size:22px;
 }
 
-.revistaCard img{
-  width:100%;
-  border-radius:10px;
-  margin-bottom:10px;
+#loginBox{
+  text-align:center;
+  margin:20px;
 }
 
-.revistaCard:hover{
-  transform:translateY(-5px);
+input, textarea{
+  padding:8px;
+  margin:5px;
+  border-radius:6px;
+  border:none;
 }
 
-.adminForm{
-  margin:20px auto;
-  max-width:500px;
-  background:#ffeb99;
-  padding:20px;
-  border-radius:15px;
-  box-shadow:0 5px 15px rgba(0,0,0,0.2);
-}
-
-.adminForm input, .adminForm textarea{
-  width:100%;
-  margin-bottom:10px;
-  padding:10px;
-  border-radius:8px;
-  border:1px solid #ccc;
-}
-
-.adminForm button{
+button{
   background:#ff0055;
   color:white;
-  padding:10px 20px;
   border:none;
-  border-radius:8px;
+  padding:8px 14px;
+  border-radius:6px;
   cursor:pointer;
 }
 
-.adminBadge{
-  position:absolute;
-  top:10px;
-  right:10px;
-  background:#ff0055;
-  color:white;
-  padding:3px 8px;
-  border-radius:8px;
-  font-size:12px;
+#adminPanel{
+  display:none;
+  text-align:center;
+  margin-bottom:20px;
 }
-</style>
-</head>
-<body>
 
-<header>
-  <img src="logo.png" class="logo">
-</header>
+#newsContainer{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+}
 
-<div id="adminSection" class="hidden">
-  <form class="adminForm" id="revistaForm">
-    <h3>Adicionar Revista</h3>
-    <input type="text" id="revistaTitulo" placeholder="Nome da Capa / Título" required>
-    <input type="text" id="revistaArtista" placeholder="Nome do Idol / Artista" required>
-    <input type="date" id="revistaData" required>
-    <input type="file" id="revistaImagem" accept="image/*" required>
-    <button type="submit">Publicar Revista</button>
-  </form>
-</div>
+/* Post-it style */
+.post{
+  width:300px;
+  min-height:200px;
+  margin:15px;
+  padding:15px;
+  border-radius:10px;
+  box-shadow:0 5px 15px rgba(0,0,0,0.5);
+  transform:rotate(-1deg);
+}
 
-<div id="revistaContainer"></div>
+.yellow{background:#fff59d;}
+.pink{background:#f8bbd0;}
+.green{background:#c8e6c9;}
+.orange{background:#ffe0b2;}
 
-<script>
+.post img{
+  width:100%;
+  margin-top:10px;
+  border-radius:6px;
+}
+</style></head>
+<body><header>R-NET NEWS</header><div id="loginBox">
+  <input id="adminCode" placeholder="Código Admin">
+  <button onclick="checkAdmin()">Entrar</button>
+</div><div id="adminPanel">
+  <h3>Painel Admin</h3>
+  <input id="title" placeholder="Título"><br>
+  <textarea id="content" placeholder="Notícia"></textarea><br>
+  <input id="image" placeholder="URL da imagem (opcional)"><br>
+  <button onclick="postNews()">Publicar</button>
+</div><div id="newsContainer"></div><script>
 const firebaseConfig = {
-  apiKey: "AIzaSyCUFift2BuvD433AYTBVNGCNli2PtBMalo",
-  authDomain: "rnetnews-273fc.firebaseapp.com",
-  projectId: "rnetnews-273fc",
-  storageBucket: "rnetnews-273fc.appspot.com",
-  messagingSenderId: "856234559611",
-  appId: "1:856234559611:web:4b051c2fd1d8f9cb67fade"
+  apiKey: "AIzaSyCtPYRzfxQvgoHdigtnpN2Bew9iHRX4Xbo",
+  authDomain: "rnet-news.firebaseapp.com",
+  projectId: "rnet-news",
+  storageBucket: "rnet-news.firebasestorage.app",
+  messagingSenderId: "264932539638",
+  appId: "1:264932539638:web:3b9875c04eac7869fac0d7"
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-const storage = firebase.storage();
 
-const adminUID = "ITxtdznlxEeXhDoSFcfjYCge6gn1";
-
+const ADMIN_UID = "CgNIRHK6AOerilZ0Vcem8PWMe992";
 let isAdmin = false;
 
-// Solicita UID
-let userUID = prompt("Digite seu código de acesso:");
-if(userUID === adminUID){
-  isAdmin = true;
-  document.getElementById("adminSection").classList.remove("hidden");
-} else {
-  isAdmin = false;
+/* =====================
+ADMIN LOGIN POR CÓDIGO
+===================== */
+
+function checkAdmin(){
+  const code = document.getElementById("adminCode").value;
+  if(code === ADMIN_UID){
+    isAdmin = true;
+    document.getElementById("adminPanel").style.display="block";
+    alert("Modo Admin ativado");
+  }else{
+    alert("Código incorreto");
+  }
 }
 
-// Função de adicionar revista
-const revistaForm = document.getElementById("revistaForm");
-revistaForm?.addEventListener("submit", async function(e){
-  e.preventDefault();
-  if(!isAdmin) return;
+/* =====================
+POSTAR NEWS
+===================== */
 
-  const titulo = document.getElementById("revistaTitulo").value;
-  const artista = document.getElementById("revistaArtista").value;
-  const data = document.getElementById("revistaData").value;
-  const imagemFile = document.getElementById("revistaImagem").files[0];
+function postNews(){
+  const title = document.getElementById("title").value;
+  const content = document.getElementById("content").value;
+  const image = document.getElementById("image").value;
 
-  if(!imagemFile) return alert("Selecione uma imagem");
-
-  try{
-    // Upload para Storage
-    const storageRef = storage.ref("revistas/"+Date.now()+"_"+imagemFile.name);
-    await storageRef.put(imagemFile);
-    const url = await storageRef.getDownloadURL();
-
-    // Salvar no Firestore
-    await db.collection("revistas").add({
-      titulo,
-      artista,
-      data,
-      imagem: url,
-      criadoEm: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
-    alert("Revista publicada com sucesso!");
-    revistaForm.reset();
-  } catch(err){
-    alert("Erro ao publicar: "+err.message);
-    console.error(err);
+  if(!title || !content){
+    alert("Preencha título e notícia");
+    return;
   }
-});
 
-// Mostrar revistas para todos
-db.collection("revistas").orderBy("criadoEm","desc")
+  db.collection("news").add({
+    title:title,
+    content:content,
+    image:image,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  document.getElementById("title").value="";
+  document.getElementById("content").value="";
+  document.getElementById("image").value="";
+}
+
+/* =====================
+LISTAR NEWS (AO VIVO)
+===================== */
+
+const colors = ["yellow","pink","green","orange"];
+
+db.collection("news")
+.orderBy("createdAt","desc")
 .onSnapshot(snapshot=>{
-  const container = document.getElementById("revistaContainer");
-  container.innerHTML = "";
+  const container = document.getElementById("newsContainer");
+  container.innerHTML="";
 
   snapshot.forEach(doc=>{
     const d = doc.data();
-    const card = document.createElement("div");
-    card.classList.add("revistaCard");
+    const color = colors[Math.floor(Math.random()*colors.length)];
 
-    if(isAdmin){
-      const badge = document.createElement("div");
-      badge.classList.add("adminBadge");
-      badge.innerText = "ADMIN";
-      card.appendChild(badge);
-    }
-
-    const img = document.createElement("img");
-    img.src = d.imagem;
-    card.appendChild(img);
-
-    const title = document.createElement("h3");
-    title.innerText = d.titulo;
-    card.appendChild(title);
-
-    const artista = document.createElement("p");
-    artista.innerText = "Artista: "+d.artista;
-    card.appendChild(artista);
-
-    const dataEl = document.createElement("p");
-    dataEl.innerText = "Data: "+d.data;
-    card.appendChild(dataEl);
-
-    container.appendChild(card);
+    container.innerHTML += `
+      <div class="post ${color}">
+        <h3>${d.title}</h3>
+        <p>${d.content}</p>
+        ${d.image ? `<img src="${d.image}">` : ""}
+        ${isAdmin ? `<button onclick="deleteNews('${doc.id}')">Apagar</button>` : ""}
+      </div>
+    `;
   });
 });
-</script>
-</body>
+
+/* =====================
+APAGAR (ADMIN)
+===================== */
+
+function deleteNews(id){
+  db.collection("news").doc(id).delete();
+}
+</script></body>
 </html>
