@@ -14,76 +14,39 @@ body{
   background:#0f0f0f;
   color:white;
 }
-
 header{
   background:#111;
   padding:10px;
   text-align:center;
 }
-
 .logo{height:55px; margin-bottom:5px;}
-
 #rulesScreen{
-  position:fixed;
-  top:0; left:0;
-  width:100%; height:100%;
-  background:#0f0f0f;
-  display:flex; align-items:center; justify-content:center;
-  z-index:9999; text-align:center;
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  background:#0f0f0f; display:flex; align-items:center; justify-content:center; z-index:9999; text-align:center;
 }
-
 .rulesBox{
-  background:#181818; padding:25px; border-radius:12px;
-  max-width:400px;
+  background:#181818; padding:25px; border-radius:12px; max-width:400px;
 }
-
 .rulesBox button{
-  background:#ff0055; color:white;
-  border:none; padding:10px 20px; margin-top:15px;
-  border-radius:6px; cursor:pointer;
+  background:#ff0055; color:white; border:none; padding:10px 20px; margin-top:15px; border-radius:6px; cursor:pointer;
 }
-
 #revistaContainer{
   display:flex; flex-wrap:wrap; justify-content:center; padding:20px;
 }
-
 .revistaCard{
   width:300px; background:#fffa8c; color:#111;
   margin:15px; padding:15px; border-radius:12px;
   box-shadow: 0 0 8px #000;
   position:relative; transition:0.4s;
 }
-
-.revistaCard img{
-  width:100%; border-radius:8px; margin-bottom:8px;
-}
-
-.adminControls{
-  display:flex; justify-content:space-between; margin-bottom:10px;
-}
-
+.revistaCard img{ width:100%; border-radius:8px; margin-bottom:8px;}
+.adminControls{ display:flex; justify-content:space-between; margin-bottom:10px;}
 .adminControls button{
-  background:#ff0055; color:white; border:none;
-  padding:6px 10px; border-radius:6px; cursor:pointer;
-  font-size:12px;
+  background:#ff0055; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-size:12px;
 }
-
-input, textarea{
-  width:100%; margin-bottom:8px; padding:6px;
-  border-radius:6px; border:none;
-}
-
-#adminPanel{
-  background:#222; padding:15px; margin:15px; border-radius:12px;
-  max-width:400px;
-}
-
-.newLabel{
-  position:absolute; top:8px; right:8px;
-  background:#ff0055; color:white; padding:4px 6px;
-  font-size:12px; border-radius:6px;
-}
-
+input, textarea{ width:100%; margin-bottom:8px; padding:6px; border-radius:6px; border:none;}
+#adminPanel{ background:#222; padding:15px; margin:15px; border-radius:12px; max-width:400px;}
+.newLabel{ position:absolute; top:8px; right:8px; background:#ff0055; color:white; padding:4px 6px; font-size:12px; border-radius:6px;}
 </style>
 </head>
 <body>
@@ -111,7 +74,7 @@ input, textarea{
   <input type="text" id="horaPub" placeholder="Hora da publicação">
   <input type="file" id="capaFile" accept="image/*">
   <textarea id="conteudo" placeholder="Conteúdo da revista"></textarea>
-  <button onclick="postRevista()">Postar</button>
+  <button id="postBtn">Postar</button>
 </div>
 
 <div id="revistaContainer"></div>
@@ -140,29 +103,32 @@ if(localStorage.getItem("rulesAccepted")==="yes"){
 }
 
 // ==================== ADMIN CHECK ====================
-const ADMIN_UID = "ITxtdznlxEeXhDoSFcfjYCge6gn1"; // só você
+const ADMIN_UID = "ITxtdznlxEeXhDoSFcfjYCge6gn1";
 let isAdmin = false;
 
-// Função simples para perguntar UID
 function askUID(){
   const uid = prompt("Digite o código de administrador:");
   if(uid === ADMIN_UID){
     isAdmin = true;
     document.getElementById("adminPanel").classList.remove("hidden");
   } else {
-    alert("Modo visitante ativado");
+    alert("Você está no modo visitante");
   }
 }
 askUID();
 
 // ==================== POSTAR REVISTA ====================
-async function postRevista(){
+document.getElementById("postBtn").addEventListener("click", async ()=>{
   const titulo = document.getElementById("titulo").value;
   const dataPub = document.getElementById("dataPub").value;
   const horaPub = document.getElementById("horaPub").value;
   const conteudo = document.getElementById("conteudo").value;
   const file = document.getElementById("capaFile").files[0];
-  if(!titulo || !dataPub || !horaPub || !conteudo || !file){ alert("Preencha tudo!"); return;}
+
+  if(!titulo || !dataPub || !horaPub || !conteudo || !file){
+    alert("Preencha tudo!");
+    return;
+  }
 
   const storageRef = storage.ref("capas/"+file.name);
   await storageRef.put(file);
@@ -183,19 +149,17 @@ async function postRevista(){
   document.getElementById("horaPub").value="";
   document.getElementById("conteudo").value="";
   document.getElementById("capaFile").value="";
-}
+});
 
 // ==================== CARREGAR REVISTAS ====================
-db.collection("revistas")
-.orderBy("createdAt","desc")
-.onSnapshot(snapshot=>{
+db.collection("revistas").orderBy("createdAt","desc").onSnapshot(snapshot=>{
   const container = document.getElementById("revistaContainer");
   container.innerHTML="";
   snapshot.forEach(doc=>{
     const data = doc.data();
     const card = document.createElement("div");
     card.className="revistaCard";
-    // New face se tiver menos de 1 dia
+
     const now = new Date();
     let newFace = "";
     if(data.createdAt && (now - data.createdAt.toDate()) < 24*60*60*1000){
