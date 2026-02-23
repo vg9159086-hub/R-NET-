@@ -1,23 +1,32 @@
-<!DOCTYPE html><html>
+<!DOCTYPE html>
+<html>
 <head>
 <meta charset="UTF-8">
-<title>R-NET News</title><script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script><style>
+<title>R-Net News</title>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<style>
 body{
   margin:0;
   font-family:Arial;
   background:#0f0f0f;
+  color:white;
+  text-align:center;
 }
 
 header{
   background:#111;
   padding:15px;
-  text-align:center;
-  color:white;
-  font-size:22px;
 }
 
-#loginBox{
-  text-align:center;
+.logo{
+  height:60px;
+}
+
+/* Login admin */
+#adminArea{
   margin:20px;
 }
 
@@ -32,55 +41,103 @@ button{
   background:#ff0055;
   color:white;
   border:none;
-  padding:8px 14px;
+  padding:8px 15px;
   border-radius:6px;
   cursor:pointer;
 }
 
-#adminPanel{
-  display:none;
-  text-align:center;
-  margin-bottom:20px;
-}
-
+/* Container mural */
 #newsContainer{
   display:flex;
   flex-wrap:wrap;
   justify-content:center;
+  padding:20px;
 }
 
-/* Post-it style */
+/* Post-it grande */
 .post{
-  width:300px;
-  min-height:200px;
-  margin:15px;
-  padding:15px;
-  border-radius:10px;
-  box-shadow:0 5px 15px rgba(0,0,0,0.5);
+  position:relative;
+  width:380px;
+  min-height:280px;
+  margin:20px;
+  padding:25px;
+  border-radius:15px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.6);
   transform:rotate(-1deg);
+  font-size:18px;
+  color:#000;
+  text-align:left;
 }
 
-.yellow{background:#fff59d;}
-.pink{background:#f8bbd0;}
-.green{background:#c8e6c9;}
-.orange{background:#ffe0b2;}
+.post h3{
+  font-size:24px;
+  margin-bottom:10px;
+}
+
+.post p{
+  font-size:18px;
+  line-height:1.5;
+}
 
 .post img{
   width:100%;
   margin-top:10px;
-  border-radius:6px;
+  border-radius:8px;
 }
-</style></head>
-<body><header>R-NET NEWS</header><div id="loginBox">
-  <input id="adminCode" placeholder="Código Admin">
-  <button onclick="checkAdmin()">Entrar</button>
-</div><div id="adminPanel">
-  <h3>Painel Admin</h3>
+
+/* Cores post-it */
+.yellow{ background:#fff59d; }
+.pink{ background:#f8bbd0; }
+.green{ background:#c8e6c9; }
+.orange{ background:#ffe0b2; }
+
+/* Badge NEW */
+.newBadge{
+  position:absolute;
+  top:10px;
+  right:15px;
+  background:red;
+  color:white;
+  padding:5px 10px;
+  border-radius:8px;
+  font-weight:bold;
+  font-size:14px;
+  box-shadow:0 3px 10px rgba(0,0,0,0.4);
+}
+
+/* Área de postagem (admin) */
+#postArea{
+  display:none;
+  margin:20px;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <img src="logo.png" class="logo">
+  <h2>R-Net News</h2>
+</header>
+
+<!-- Login Admin -->
+<div id="adminArea">
+  <input type="text" id="adminCode" placeholder="Código Admin">
+  <button onclick="loginAdmin()">Entrar</button>
+</div>
+
+<!-- Área de Postagem -->
+<div id="postArea">
+  <h3>Postar notícia</h3>
   <input id="title" placeholder="Título"><br>
-  <textarea id="content" placeholder="Notícia"></textarea><br>
+  <textarea id="content" placeholder="Conteúdo" rows="4" cols="30"></textarea><br>
   <input id="image" placeholder="URL da imagem (opcional)"><br>
   <button onclick="postNews()">Publicar</button>
-</div><div id="newsContainer"></div><script>
+</div>
+
+<!-- Mural -->
+<div id="newsContainer"></div>
+
+<script>
 const firebaseConfig = {
   apiKey: "AIzaSyCtPYRzfxQvgoHdigtnpN2Bew9iHRX4Xbo",
   authDomain: "rnet-news.firebaseapp.com",
@@ -93,42 +150,42 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+/* ===== CONFIG ADMIN ===== */
 const ADMIN_UID = "CgNIRHK6AOerilZ0Vcem8PWMe992";
 let isAdmin = false;
 
-/* =====================
-ADMIN LOGIN POR CÓDIGO
-===================== */
+/* Aviso inicial visitante */
+window.onload = function(){
+  alert("Apenas admins podem postar notícias.\nVocê está entrando como visitante para se atualizar das notícias!");
+}
 
-function checkAdmin(){
+/* Login por código */
+function loginAdmin(){
   const code = document.getElementById("adminCode").value;
   if(code === ADMIN_UID){
     isAdmin = true;
-    document.getElementById("adminPanel").style.display="block";
+    document.getElementById("postArea").style.display = "block";
     alert("Modo Admin ativado");
   }else{
     alert("Código incorreto");
   }
 }
 
-/* =====================
-POSTAR NEWS
-===================== */
-
+/* Postar notícia */
 function postNews(){
   const title = document.getElementById("title").value;
   const content = document.getElementById("content").value;
   const image = document.getElementById("image").value;
 
   if(!title || !content){
-    alert("Preencha título e notícia");
+    alert("Preencha título e conteúdo");
     return;
   }
 
   db.collection("news").add({
-    title:title,
-    content:content,
-    image:image,
+    title,
+    content,
+    image,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   });
 
@@ -137,12 +194,15 @@ function postNews(){
   document.getElementById("image").value="";
 }
 
-/* =====================
-LISTAR NEWS (AO VIVO)
-===================== */
+/* Apagar notícia */
+function deleteNews(id){
+  db.collection("news").doc(id).delete();
+}
 
+/* Cores dos post-its */
 const colors = ["yellow","pink","green","orange"];
 
+/* Carregar notícias em tempo real */
 db.collection("news")
 .orderBy("createdAt","desc")
 .onSnapshot(snapshot=>{
@@ -153,8 +213,20 @@ db.collection("news")
     const d = doc.data();
     const color = colors[Math.floor(Math.random()*colors.length)];
 
+    /* NEW em menos de 24h */
+    let isNew = false;
+    if(d.createdAt){
+      const now = new Date();
+      const postDate = d.createdAt.toDate();
+      const diffHours = (now - postDate) / (1000*60*60);
+      if(diffHours < 24){
+        isNew = true;
+      }
+    }
+
     container.innerHTML += `
       <div class="post ${color}">
+        ${isNew ? `<div class="newBadge">NEW</div>` : ""}
         <h3>${d.title}</h3>
         <p>${d.content}</p>
         ${d.image ? `<img src="${d.image}">` : ""}
@@ -163,13 +235,7 @@ db.collection("news")
     `;
   });
 });
+</script>
 
-/* =====================
-APAGAR (ADMIN)
-===================== */
-
-function deleteNews(id){
-  db.collection("news").doc(id).delete();
-}
-</script></body>
+</body>
 </html>
