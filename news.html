@@ -6,60 +6,16 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <style>
-body {
-  margin:0;
-  font-family: Arial, sans-serif;
-  background:#0f0f0f;
-  color:#111;
-}
-header {
-  background:#111;
-  padding:10px;
-  text-align:center;
-}
-.logo {height:55px;}
-.container {
-  display:flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  margin:20px;
-  gap:20px;
-}
-.postit {
-  width:300px;
-  min-height:200px;
-  padding:15px;
-  border-radius:12px;
-  box-shadow:2px 2px 10px rgba(0,0,0,0.5);
-  position: relative;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-.postit h3 {
-  margin:0 0 10px 0;
-}
-.postit img {
-  max-width:100%;
-  margin-top:10px;
-  border-radius:8px;
-}
-button {
-  background:#ff0055;
-  color:white;
-  border:none;
-  padding:6px 12px;
-  border-radius:6px;
-  cursor:pointer;
-  margin-top:10px;
-}
-.admin-panel {
-  background:#222;
-  padding:15px;
-  margin:15px;
-  border-radius:12px;
-  text-align:center;
-}
-.hidden {display:none;}
+body { margin:0; font-family: Arial, sans-serif; background:#0f0f0f; color:#111; }
+header { background:#111; padding:10px; text-align:center; }
+.logo { height:55px; }
+.container { display:flex; flex-wrap: wrap; justify-content:center; margin:20px; gap:20px; }
+.postit { width:300px; min-height:200px; padding:15px; border-radius:12px; box-shadow:2px 2px 10px rgba(0,0,0,0.5); position:relative; white-space: pre-wrap; word-wrap: break-word; }
+.postit h3 { margin:0 0 10px 0; }
+.postit img { max-width:100%; margin-top:10px; border-radius:8px; }
+button { background:#ff0055; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; margin-top:10px; }
+.admin-panel { background:#222; padding:15px; margin:15px; border-radius:12px; text-align:center; }
+.hidden { display:none; }
 </style>
 </head>
 <body>
@@ -95,18 +51,19 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// UID do Admin
+// ================= ADMIN FIXO =================
 const ADMIN_UID = "jy7EFx66yFYPVEi5XZaSVYcyWrw2";
 
-// Simulação de UID (você pode colocar login real ou cookie)
-let userUID = prompt("Coloque seu UID (deixe vazio para visitante):") || "visitor";
+// Aqui você pode definir se está logado como admin ou visitante
+// Para teste rápido, defina:
+let userUID = ADMIN_UID; // OU "visitor" para visitante
 
-// Mostrar painel admin só pro UID correto
+// Mostrar painel admin somente para UID correto
 if(userUID === ADMIN_UID){
   document.getElementById("adminPanel").classList.remove("hidden");
 }
 
-// Função de postar notícia
+// ================= POSTAR NOTÍCIA =================
 async function postNews(){
   const title = document.getElementById("newsTitle").value;
   const content = document.getElementById("newsContent").value;
@@ -125,13 +82,13 @@ async function postNews(){
   document.getElementById("newsImage").value="";
 }
 
-// Função remover notícia
+// ================= REMOVER =================
 async function removeNews(id){
   if(userUID !== ADMIN_UID) return;
   await db.collection("news").doc(id).delete();
 }
 
-// Função editar notícia
+// ================= EDITAR =================
 async function editNews(id, currentTitle, currentContent, currentImage, currentColor){
   if(userUID !== ADMIN_UID) return;
 
@@ -150,7 +107,7 @@ async function editNews(id, currentTitle, currentContent, currentImage, currentC
   });
 }
 
-// Exibir notícias
+// ================= EXIBIR NOTÍCIAS =================
 db.collection("news").orderBy("createdAt","desc")
 .onSnapshot(snapshot=>{
   const container = document.getElementById("newsContainer");
@@ -166,7 +123,6 @@ db.collection("news").orderBy("createdAt","desc")
     if(d.image) html += `<img src="${d.image}">`;
     html += `<p style="font-size:12px; color:#333;">${d.createdAt ? new Date(d.createdAt.toDate()).toLocaleString() : ""}</p>`;
 
-    // Botões só pro admin
     if(userUID === ADMIN_UID){
       html += `<button onclick="editNews('${doc.id}','${escapeHtml(d.title)}','${escapeHtml(d.content)}','${d.image || ''}','${d.color || '#FFEB3B'}')">Editar</button>`;
       html += `<button onclick="removeNews('${doc.id}')">Remover</button>`;
@@ -177,7 +133,7 @@ db.collection("news").orderBy("createdAt","desc")
   });
 });
 
-// Função de escape pra não quebrar string no prompt
+// ================= ESCAPE HTML =================
 function escapeHtml(text){
   if(!text) return "";
   return text.replace(/'/g,"\\'").replace(/"/g,'\\"');
