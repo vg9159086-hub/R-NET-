@@ -121,17 +121,12 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const storage = firebase.storage();
 
-// Coloque seu UID de admin aqui
 const adminUID = "ITxtdznlxEeXhDoSFcfjYCge6gn1";
 
-// =======================
-// CHECAR ADMIN OU VISITANTE
-// =======================
 let isAdmin = false;
 
-// UID inserido manualmente
+// Solicita UID
 let userUID = prompt("Digite seu código de acesso:");
-
 if(userUID === adminUID){
   isAdmin = true;
   document.getElementById("adminSection").classList.remove("hidden");
@@ -139,10 +134,9 @@ if(userUID === adminUID){
   isAdmin = false;
 }
 
-// =======================
-// FUNÇÃO PARA ADICIONAR REVISTA
-// =======================
-document.getElementById("revistaForm")?.addEventListener("submit", async function(e){
+// Função de adicionar revista
+const revistaForm = document.getElementById("revistaForm");
+revistaForm?.addEventListener("submit", async function(e){
   e.preventDefault();
   if(!isAdmin) return;
 
@@ -153,30 +147,30 @@ document.getElementById("revistaForm")?.addEventListener("submit", async functio
 
   if(!imagemFile) return alert("Selecione uma imagem");
 
-  const storageRef = storage.ref("revistas/"+Date.now()+"_"+imagemFile.name);
-  const uploadTask = storageRef.put(imagemFile);
+  try{
+    // Upload para Storage
+    const storageRef = storage.ref("revistas/"+Date.now()+"_"+imagemFile.name);
+    await storageRef.put(imagemFile);
+    const url = await storageRef.getDownloadURL();
 
-  uploadTask.on("state_changed",
-    null,
-    (error)=>{ alert("Erro ao enviar: "+error); },
-    async ()=>{
-      const url = await storageRef.getDownloadURL();
-      await db.collection("revistas").add({
-        titulo: titulo,
-        artista: artista,
-        data: data,
-        imagem: url,
-        criadoEm: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      alert("Revista publicada!");
-      document.getElementById("revistaForm").reset();
-    }
-  );
+    // Salvar no Firestore
+    await db.collection("revistas").add({
+      titulo,
+      artista,
+      data,
+      imagem: url,
+      criadoEm: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    alert("Revista publicada com sucesso!");
+    revistaForm.reset();
+  } catch(err){
+    alert("Erro ao publicar: "+err.message);
+    console.error(err);
+  }
 });
 
-// =======================
-// EXIBIR REVISTAS
-// =======================
+// Mostrar revistas para todos
 db.collection("revistas").orderBy("criadoEm","desc")
 .onSnapshot(snapshot=>{
   const container = document.getElementById("revistaContainer");
@@ -186,6 +180,7 @@ db.collection("revistas").orderBy("criadoEm","desc")
     const d = doc.data();
     const card = document.createElement("div");
     card.classList.add("revistaCard");
+
     if(isAdmin){
       const badge = document.createElement("div");
       badge.classList.add("adminBadge");
