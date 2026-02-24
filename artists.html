@@ -26,17 +26,17 @@ header{
 
 #warning{
     background:#222;
-    padding:10px;
-    font-size:14px;
+    padding:12px;
+    font-size:15px;
 }
 
 #loginArea{
-    margin:30px;
+    margin:25px;
 }
 
 input, button{
     padding:10px;
-    margin:5px;
+    margin:6px;
     border-radius:6px;
     border:none;
 }
@@ -103,15 +103,6 @@ button{
     color:white;
     margin-top:10px;
 }
-
-#confetti{
-    position:fixed;
-    top:0;
-    left:0;
-    width:100%;
-    height:100%;
-    pointer-events:none;
-}
 </style>
 </head>
 <body>
@@ -123,8 +114,8 @@ Aprecie todos os grupos aqui
 </div>
 
 <div id="loginArea">
-<input id="code" placeholder="Código da empresa">
-<br>
+<input id="empresaNome" placeholder="Nome da empresa"><br>
+<input id="empresaSenha" type="password" placeholder="Senha"><br>
 <button onclick="enterAdmin()">Entrar como Empresa</button>
 <button onclick="enterVisitor()">Entrar como Visitante</button>
 </div>
@@ -143,35 +134,37 @@ Aprecie todos os grupos aqui
 
 <div id="artists"></div>
 
-<canvas id="confetti"></canvas>
-
 <script>
+// ================= FIREBASE =================
 const firebaseConfig = {
   apiKey: "AIzaSyAtv9gmTCvlor0zkdLzqWQbheeahr2xy9U",
-  authDomain: "rnet-artist.firebaseapp.com",
-  projectId: "rnet-artist",
-  storageBucket: "rnet-artist.firebasestorage.app",
-  messagingSenderId: "177874343578",
-  appId: "1:177874343578:web:00936bd86e08ff2c6d3123"
+authDomain: "rnet-artist.firebaseapp.com",
+projectId: "rnet-artist",
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-const ADMIN_CODE = "CgNIRHK6AOerilZ0Vcem8PWMe992";
+// ============ LOGIN EMPRESA ============
+// Você pode mudar esses dados
+const EMPRESA_NOME = "RNET";
+const EMPRESA_SENHA = "1234";
+
 let currentUser = "visitor";
 
-// LOGIN
+// ================= LOGIN =================
 function enterAdmin(){
-    const code = document.getElementById("code").value;
-    if(code === ADMIN_CODE){
-        currentUser = code;
+    const nome = document.getElementById("empresaNome").value;
+    const senha = document.getElementById("empresaSenha").value;
+
+    if(nome === EMPRESA_NOME && senha === EMPRESA_SENHA){
+        currentUser = nome;
         document.getElementById("adminPanel").style.display="block";
         document.getElementById("loginArea").style.display="none";
         loadArtists();
-        confettiEffect();
+        confetti();
     }else{
-        alert("Código inválido");
+        alert("Nome ou senha incorretos");
     }
 }
 
@@ -179,10 +172,10 @@ function enterVisitor(){
     currentUser = "visitor";
     document.getElementById("loginArea").style.display="none";
     loadArtists();
-    confettiEffect();
+    confetti();
 }
 
-// CADASTRAR
+// ================= CADASTRAR =================
 function addArtist(){
     db.collection("artist").add({
         name: name.value,
@@ -194,21 +187,23 @@ function addArtist(){
         image: image.value,
         likes: 0,
         dislikes: 0,
-        owner: ADMIN_CODE,
+        owner: currentUser,
         createdAt: new Date()
     });
 }
 
-// LISTAR
+// ================= LISTAR =================
 function loadArtists(){
-    db.collection("artist").orderBy("createdAt","desc")
+    db.collection("artist")
+    .orderBy("createdAt","desc")
     .onSnapshot(snapshot=>{
         artists.innerHTML="";
+
         snapshot.forEach(doc=>{
             const a = doc.data();
 
             let deleteButton = "";
-            if(currentUser === a.owner){
+            if(currentUser !== "visitor" && currentUser === a.owner){
                 deleteButton = `<button class="deleteBtn" onclick="deleteArtist('${doc.id}')">Excluir</button>`;
             }
 
@@ -234,12 +229,12 @@ function loadArtists(){
     });
 }
 
-// EXCLUIR
+// ================= EXCLUIR =================
 function deleteArtist(id){
     db.collection("artist").doc(id).delete();
 }
 
-// LIKE
+// ================= LIKE =================
 function like(id, current){
     db.collection("artist").doc(id).update({
         likes: current + 1
@@ -252,35 +247,29 @@ function dislike(id, current){
     });
 }
 
-// CONFETE
-function confettiEffect(){
-    const canvas = document.getElementById("confetti");
-    const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+// ================= CONFETE =================
+function confetti(){
+    for(let i=0;i<80;i++){
+        const c = document.createElement("div");
+        c.style.position="fixed";
+        c.style.width="6px";
+        c.style.height="6px";
+        c.style.background="gold";
+        c.style.left=Math.random()*100+"%";
+        c.style.top="-10px";
+        c.style.opacity="0.8";
+        c.style.zIndex="999";
+        document.body.appendChild(c);
 
-    let pieces = [];
-    for(let i=0;i<100;i++){
-        pieces.push({
-            x: Math.random()*canvas.width,
-            y: Math.random()*canvas.height,
-            r: Math.random()*6+4
-        });
+        let fall = setInterval(()=>{
+            let top = parseInt(c.style.top);
+            c.style.top = top + 4 + "px";
+            if(top > window.innerHeight){
+                clearInterval(fall);
+                c.remove();
+            }
+        },20);
     }
-
-    function draw(){
-        ctx.clearRect(0,0,canvas.width,canvas.height);
-        ctx.fillStyle="gold";
-        pieces.forEach(p=>{
-            ctx.beginPath();
-            ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-            ctx.fill();
-            p.y += 2;
-            if(p.y > canvas.height) p.y = 0;
-        });
-        requestAnimationFrame(draw);
-    }
-    draw();
 }
 </script>
 
