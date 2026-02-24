@@ -1,212 +1,218 @@
-<!DOCTYPE html>
-<html lang="pt-br">
+<!DOCTYPE html><html>
 <head>
 <meta charset="UTF-8">
-<title>R-Net Artists</title>
+<title>R-Net Artists</title><!-- Firebase --><script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script><script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script><style>
+body{
+    font-family: Arial;
+    background:#111;
+    color:white;
+    text-align:center;
+}
 
-<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+#loginArea, #empresaArea{
+    margin:20px;
+}
 
-<style>
-body{font-family:Arial;background:#111;color:white;text-align:center;margin:0;}
-header{background:black;padding:20px;font-size:28px;color:gold;font-weight:bold;}
-#warning{background:#222;padding:12px;}
-input,button{padding:10px;margin:6px;border-radius:6px;border:none;}
-button{background:gold;font-weight:bold;cursor:pointer;}
-#adminPanel{display:none;background:#222;padding:20px;margin:20px;border-radius:10px;}
-#artists{display:flex;flex-wrap:wrap;justify-content:center;gap:20px;padding:20px;}
-.card{background:#1a1a1a;border:3px solid gold;border-radius:15px;width:260px;padding:15px;}
-.card img{width:100%;border-radius:10px;}
-.reactions img{width:28px;cursor:pointer;margin:5px;}
-.deleteBtn{background:red;color:white;margin-top:10px;}
-</style>
-</head>
-<body>
+input{
+    padding:8px;
+    margin:5px;
+}
 
-<header>R-Net Artists</header>
-<div id="warning">Aprecie todos os grupos aqui</div>
+button{
+    padding:8px 15px;
+    cursor:pointer;
+}
 
-<!-- LOGIN / CADASTRO -->
-<div id="loginArea">
+.artistCard{
+    border:4px solid gold;
+    border-radius:10px;
+    margin:20px auto;
+    padding:15px;
+    max-width:350px;
+    background:#1b1b1b;
+}
 
-<h3>Entrar como Empresa</h3>
-<input id="loginNome" placeholder="Nome da empresa"><br>
-<input id="loginSenha" type="password" placeholder="Senha"><br>
-<button onclick="loginEmpresa()">Entrar</button>
+.artistCard img{
+    width:100%;
+    height:auto;
+    object-fit:contain;
+}
 
-<h3>Cadastrar nova Empresa</h3>
-<input id="cadNome" placeholder="Nome da empresa"><br>
-<input id="cadSenha" type="password" placeholder="Senha"><br>
+.likeBtn{
+    margin:5px;
+    cursor:pointer;
+}
+
+#confetti{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    pointer-events:none;
+}
+</style></head>
+<body><h1>R-Net Artists</h1><p><b>Aprecie todos os grupos aqui!</b></p>
+<p>Apenas empresas podem cadastrar artistas. Você pode entrar como visitante ou empresa.</p><div id="loginArea">
+    <h3>Login Empresa</h3>
+    <input id="empresaNome" placeholder="Nome da empresa">
+    <input id="empresaSenha" type="password" placeholder="Senha">
+    <button onclick="loginEmpresa()">Entrar</button><h3>Cadastrar nova empresa</h3>
+<input id="newEmpresaNome" placeholder="Nome">
+<input id="newEmpresaSenha" type="password" placeholder="Senha">
 <button onclick="cadastrarEmpresa()">Cadastrar empresa</button>
 
-<br><br>
-<button onclick="enterVisitor()">Entrar como Visitante</button>
-
-</div>
-
-<!-- PAINEL EMPRESA -->
-<div id="adminPanel">
-<h3>Cadastrar Artista</h3>
-<input id="name" placeholder="Nome"><br>
-<input id="type" placeholder="Grupo ou Solista"><br>
-<input id="company" placeholder="Empresa"><br>
-<input id="debut" placeholder="Ano de debut"><br>
-<input id="debutSong" placeholder="Música debut"><br>
-<input id="tiktok" placeholder="@tiktok"><br>
-<input id="image" placeholder="URL da imagem"><br>
-<button onclick="addArtist()">Cadastrar</button>
-</div>
-
-<div id="artists"></div>
+</div><div id="empresaArea" style="display:none;">
+    <h2>Painel da Empresa</h2>
+    <input id="artNome" placeholder="Nome do artista ou grupo">
+    <input id="artTipo" placeholder="Grupo ou Solista">
+    <input id="artImagem" placeholder="URL da imagem">
+    <button onclick="cadastrarArtista()">Cadastrar Artista</button>
+</div><h2>Artistas</h2>
+<div id="artistsArea"></div><canvas id="confetti"></canvas>
 
 <script>
-// FIREBASE
-const firebaseConfig = {
-apiKey: "AIzaSyAtv9gmTCvlor0zkdLzqWQbheeahr2xy9U",
-authDomain: "rnet-artist.firebaseapp.com",
-projectId: "rnet-artist",
-storageBucket: "rnet-artist.firebasestorage.app",
-messagingSenderId: "177874343578",
-appId: "1:177874343578:web:00936bd86e08ff2c6d3123"
-};
+// CONFIG
+firebase.initializeApp({
+  apiKey: "AIzaSyAtv9gmTCvlor0zkdLzqWQbheeahr2xy9U",
+  authDomain: "rnet-artist.firebaseapp.com",
+  projectId: "rnet-artist",
+  storageBucket: "rnet-artist.firebasestorage.app",
+  messagingSenderId: "177874343578",
+  appId: "1:177874343578:web:00936bd86e08ff2c6d3123"
+});
 
-firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+let empresaLogada = null;
 
-let currentUser = "visitor";
+// CONFETE SIMPLES
+const canvas = document.getElementById("confetti");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = 200;
+for(let i=0;i<100;i++){
+    ctx.fillStyle = "hsl("+Math.random()*360+",100%,50%)";
+    ctx.fillRect(Math.random()*canvas.width, Math.random()*200, 5,5);
+}
 
 // CADASTRAR EMPRESA
 function cadastrarEmpresa(){
-const nome = cadNome.value.trim();
-const senha = cadSenha.value.trim();
+    const nome = document.getElementById("newEmpresaNome").value.trim();
+    const senha = document.getElementById("newEmpresaSenha").value.trim();
 
-if(!nome || !senha){
-alert("Preencha tudo");
-return;
+    if(!nome || !senha){
+        alert("Preencha tudo");
+        return;
+    }
+
+    db.collection("companies").doc(nome).set({
+        senha: senha
+    }).then(()=>{
+        alert("Empresa cadastrada!");
+    });
 }
 
-db.collection("companies").doc(nome).set({
-senha: senha,
-createdAt: new Date()
-}).then(()=>{
-alert("Empresa cadastrada!");
-});
-}
-
-// LOGIN EMPRESA
+// LOGIN
 function loginEmpresa(){
-const nome = loginNome.value.trim();
-const senha = loginSenha.value.trim();
+    const nome = document.getElementById("empresaNome").value.trim();
+    const senha = document.getElementById("empresaSenha").value.trim();
 
-db.collection("companies").doc(nome).get().then(doc=>{
-if(doc.exists && doc.data().senha === senha){
-currentUser = nome;
-loginArea.style.display="none";
-adminPanel.style.display="block";
-loadArtists();
-confetti();
-}else{
-alert("Empresa ou senha incorreta");
-}
-});
+    db.collection("companies").doc(nome).get().then(doc=>{
+        if(doc.exists && doc.data().senha === senha){
+            empresaLogada = nome;
+            document.getElementById("empresaArea").style.display="block";
+            alert("Login realizado!");
+        }else{
+            alert("Empresa ou senha incorreta");
+        }
+    });
 }
 
-// VISITANTE
-function enterVisitor(){
-currentUser = "visitor";
-loginArea.style.display="none";
-loadArtists();
-confetti();
+// CADASTRAR ARTISTA (BUG CORRIGIDO)
+function cadastrarArtista(){
+    if(!empresaLogada){
+        alert("Faça login como empresa");
+        return;
+    }
+
+    const nome = document.getElementById("artNome").value.trim();
+    const tipo = document.getElementById("artTipo").value.trim();
+    const imagem = document.getElementById("artImagem").value.trim();
+
+    if(!nome || !tipo || !imagem){
+        alert("Preencha todos os campos");
+        return;
+    }
+
+    db.collection("artist").add({
+        nome: nome,
+        tipo: tipo,
+        imagem: imagem,
+        likes: 0,
+        dislikes: 0,
+        owner: empresaLogada,
+        createdAt: new Date()
+    })
+    .then(()=>{
+        alert("Artista publicado!");
+        carregarArtistas();
+    })
+    .catch(e=>{
+        console.error(e);
+        alert("Erro ao salvar artista");
+    });
 }
 
-// CADASTRAR ARTISTA
-function addArtist(){
-db.collection("artist").add({
-name: name.value,
-type: type.value,
-company: company.value,
-debut: debut.value,
-debutSong: debutSong.value,
-tiktok: tiktok.value,
-image: image.value,
-likes: 0,
-dislikes: 0,
-owner: currentUser,
-createdAt: new Date()
-});
-}
+// CARREGAR ARTISTAS
+function carregarArtistas(){
+    const area = document.getElementById("artistsArea");
+    area.innerHTML="";
 
-// LISTAR ARTISTAS (tempo real)
-function loadArtists(){
-db.collection("artist")
-.orderBy("createdAt","desc")
-.onSnapshot(snapshot=>{
-artists.innerHTML="";
-snapshot.forEach(doc=>{
-const a = doc.data();
+    db.collection("artist").orderBy("createdAt","desc").get().then(snapshot=>{
+        snapshot.forEach(doc=>{
+            const a = doc.data();
 
-let deleteBtn="";
-if(currentUser === a.owner){
-deleteBtn = `<button class="deleteBtn" onclick="deleteArtist('${doc.id}')">Excluir</button>`;
-}
+            let excluirBtn = "";
+            if(empresaLogada === a.owner){
+                excluirBtn = `<button onclick="excluirArtista('${doc.id}')">Excluir</button>`;
+            }
 
-artists.innerHTML += `
-<div class="card">
-<img src="${a.image}">
-<div><b>${a.name}</b></div>
-<div>${a.type}</div>
-<div>${a.company}</div>
-<div>Debut: ${a.debut}</div>
-<div>${a.debutSong}</div>
-<div>${a.tiktok}</div>
-
-<div class="reactions">
-<img src="like.png" onclick="like('${doc.id}', ${a.likes||0})"> ${a.likes||0}
-<img src="deslike.png" onclick="dislike('${doc.id}', ${a.dislikes||0})"> ${a.dislikes||0}
-</div>
-
-${deleteBtn}
-</div>
-`;
-});
-});
-}
-
-// EXCLUIR
-function deleteArtist(id){
-db.collection("artist").doc(id).delete();
+            area.innerHTML += `
+                <div class="artistCard">
+                    <img src="${a.imagem}">
+                    <h3>${a.nome}</h3>
+                    <p>${a.tipo}</p>
+                    <p>👍 ${a.likes} | 👎 ${a.dislikes}</p>
+                    <button onclick="like('${doc.id}', ${a.likes})">Like</button>
+                    <button onclick="dislike('${doc.id}', ${a.dislikes})">Dislike</button>
+                    ${excluirBtn}
+                </div>
+            `;
+        });
+    });
 }
 
 // LIKE
-function like(id, atual){
-db.collection("artist").doc(id).update({likes: atual+1});
+function like(id, likes){
+    db.collection("artist").doc(id).update({
+        likes: likes + 1
+    }).then(carregarArtistas);
 }
 
-function dislike(id, atual){
-db.collection("artist").doc(id).update({dislikes: atual+1});
+// DISLIKE
+function dislike(id, dislikes){
+    db.collection("artist").doc(id).update({
+        dislikes: dislikes + 1
+    }).then(carregarArtistas);
 }
 
-// CONFETE
-function confetti(){
-for(let i=0;i<60;i++){
-const c=document.createElement("div");
-c.style.position="fixed";
-c.style.width="6px";
-c.style.height="6px";
-c.style.background="gold";
-c.style.left=Math.random()*100+"%";
-c.style.top="-10px";
-document.body.appendChild(c);
-let fall=setInterval(()=>{
-c.style.top=parseInt(c.style.top)+5+"px";
-if(parseInt(c.style.top)>window.innerHeight){
-clearInterval(fall);
-c.remove();
+// EXCLUIR
+function excluirArtista(id){
+    db.collection("artist").doc(id).delete().then(()=>{
+        carregarArtistas();
+    });
 }
-},20);
-}
-}
-</script>
 
-</body>
+// INICIAR
+carregarArtistas();
+</script></body>
 </html>
