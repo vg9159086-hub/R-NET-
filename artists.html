@@ -1,103 +1,108 @@
 <!DOCTYPE html><html>
 <head>
 <meta charset="UTF-8">
-<title>R-Net Artists</title><!-- Firebase --><script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script><script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script><style>
+<title>R-Net Artists</title><script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script><script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script><style>
 body{
-    font-family: Arial;
     background:#111;
     color:white;
+    font-family:Arial;
     text-align:center;
+    margin:0;
 }
 
-#loginArea, #empresaArea{
-    margin:20px;
+button{
+    padding:8px 15px;
+    margin:5px;
+    cursor:pointer;
 }
 
 input{
     padding:8px;
     margin:5px;
+    width:200px;
 }
 
-button{
-    padding:8px 15px;
-    cursor:pointer;
+.section{
+    margin:20px;
 }
 
 .artistCard{
     border:4px solid gold;
-    border-radius:10px;
-    margin:20px auto;
+    border-radius:12px;
     padding:15px;
+    margin:20px auto;
     max-width:350px;
-    background:#1b1b1b;
+    background:#1c1c1c;
 }
 
 .artistCard img{
     width:100%;
     height:auto;
     object-fit:contain;
+    background:black;
 }
 
-.likeBtn{
-    margin:5px;
-    cursor:pointer;
-}
-
-#confetti{
-    position:fixed;
-    top:0;
-    left:0;
-    width:100%;
-    pointer-events:none;
+.hidden{
+    display:none;
 }
 </style></head>
-<body><h1>R-Net Artists</h1><p><b>Aprecie todos os grupos aqui!</b></p>
-<p>Apenas empresas podem cadastrar artistas. Você pode entrar como visitante ou empresa.</p><div id="loginArea">
-    <h3>Login Empresa</h3>
-    <input id="empresaNome" placeholder="Nome da empresa">
-    <input id="empresaSenha" type="password" placeholder="Senha">
-    <button onclick="loginEmpresa()">Entrar</button><h3>Cadastrar nova empresa</h3>
-<input id="newEmpresaNome" placeholder="Nome">
-<input id="newEmpresaSenha" type="password" placeholder="Senha">
-<button onclick="cadastrarEmpresa()">Cadastrar empresa</button>
+<body><h1>R-Net Artists</h1>
+<p><b>Aprecie todos os grupos aqui!</b></p><!-- ESCOLHA INICIAL --><div id="home" class="section">
+    <button onclick="entrarVisitante()">Entrar como Visitante</button>
+    <button onclick="abrirEmpresa()">Área da Empresa</button>
+</div><!-- AREA EMPRESA --><div id="empresaArea" class="section hidden"><h3>Login Empresa</h3>
+<input id="loginNome" placeholder="Nome da empresa">
+<input id="loginSenha" type="password" placeholder="Senha">
+<button onclick="loginEmpresa()">Entrar</button>
 
-</div><div id="empresaArea" style="display:none;">
-    <h2>Painel da Empresa</h2>
-    <input id="artNome" placeholder="Nome do artista ou grupo">
-    <input id="artTipo" placeholder="Grupo ou Solista">
-    <input id="artImagem" placeholder="URL da imagem">
-    <button onclick="cadastrarArtista()">Cadastrar Artista</button>
+<h3>Cadastrar nova Empresa</h3>
+<input id="cadNome" placeholder="Nome">
+<input id="cadSenha" type="password" placeholder="Senha">
+<button onclick="cadastrarEmpresa()">Cadastrar</button>
+
+<hr>
+
+<div id="painelEmpresa" class="hidden">
+    <h2>Cadastrar Artista</h2>
+
+    <input id="artNome" placeholder="Nome do artista"><br>
+    <input id="artTipo" placeholder="Grupo ou Solista"><br>
+    <input id="artEmpresa" placeholder="Empresa"><br>
+    <input id="artDebutMusica" placeholder="Música de Debut"><br>
+    <input id="artDebutAno" placeholder="Ano de Debut"><br>
+    <input id="artTiktok" placeholder="@TikTok"><br>
+    <input id="artImagem" placeholder="URL da imagem (Google Drive)"><br>
+
+    <button onclick="cadastrarArtista()">Publicar</button>
+</div>
+
 </div><h2>Artistas</h2>
-<div id="artistsArea"></div><canvas id="confetti"></canvas>
-
-<script>
-// CONFIG
+<div id="artists"></div><script>
+// FIREBASE
 firebase.initializeApp({
   apiKey: "AIzaSyAtv9gmTCvlor0zkdLzqWQbheeahr2xy9U",
   authDomain: "rnet-artist.firebaseapp.com",
-  projectId: "rnet-artist",
-  storageBucket: "rnet-artist.firebasestorage.app",
-  messagingSenderId: "177874343578",
-  appId: "1:177874343578:web:00936bd86e08ff2c6d3123"
+  projectId: "rnet-artist"
 });
 
 const db = firebase.firestore();
 let empresaLogada = null;
 
-// CONFETE SIMPLES
-const canvas = document.getElementById("confetti");
-const ctx = canvas.getContext("2d");
-canvas.width = window.innerWidth;
-canvas.height = 200;
-for(let i=0;i<100;i++){
-    ctx.fillStyle = "hsl("+Math.random()*360+",100%,50%)";
-    ctx.fillRect(Math.random()*canvas.width, Math.random()*200, 5,5);
+// ======== NAVEGAÇÃO ========
+function entrarVisitante(){
+    document.getElementById("home").style.display="none";
+    carregarArtistas();
 }
 
-// CADASTRAR EMPRESA
+function abrirEmpresa(){
+    document.getElementById("home").style.display="none";
+    document.getElementById("empresaArea").classList.remove("hidden");
+}
+
+// ======== CADASTRO EMPRESA ========
 function cadastrarEmpresa(){
-    const nome = document.getElementById("newEmpresaNome").value.trim();
-    const senha = document.getElementById("newEmpresaSenha").value.trim();
+    const nome = cadNome.value.trim();
+    const senha = cadSenha.value.trim();
 
     if(!nome || !senha){
         alert("Preencha tudo");
@@ -106,20 +111,18 @@ function cadastrarEmpresa(){
 
     db.collection("companies").doc(nome).set({
         senha: senha
-    }).then(()=>{
-        alert("Empresa cadastrada!");
-    });
+    }).then(()=> alert("Empresa cadastrada!"));
 }
 
-// LOGIN
+// ======== LOGIN ========
 function loginEmpresa(){
-    const nome = document.getElementById("empresaNome").value.trim();
-    const senha = document.getElementById("empresaSenha").value.trim();
+    const nome = loginNome.value.trim();
+    const senha = loginSenha.value.trim();
 
     db.collection("companies").doc(nome).get().then(doc=>{
         if(doc.exists && doc.data().senha === senha){
             empresaLogada = nome;
-            document.getElementById("empresaArea").style.display="block";
+            document.getElementById("painelEmpresa").classList.remove("hidden");
             alert("Login realizado!");
         }else{
             alert("Empresa ou senha incorreta");
@@ -127,92 +130,85 @@ function loginEmpresa(){
     });
 }
 
-// CADASTRAR ARTISTA (BUG CORRIGIDO)
+// ======== CONVERTER LINK GOOGLE DRIVE ========
+function converterDrive(url){
+    if(url.includes("drive.google.com")){
+        const id = url.split("/d/")[1]?.split("/")[0];
+        return "https://drive.google.com/uc?export=view&id=" + id;
+    }
+    return url;
+}
+
+// ======== CADASTRAR ARTISTA ========
 function cadastrarArtista(){
     if(!empresaLogada){
         alert("Faça login como empresa");
         return;
     }
 
-    const nome = document.getElementById("artNome").value.trim();
-    const tipo = document.getElementById("artTipo").value.trim();
-    const imagem = document.getElementById("artImagem").value.trim();
-
-    if(!nome || !tipo || !imagem){
-        alert("Preencha todos os campos");
-        return;
-    }
-
-    db.collection("artist").add({
-        nome: nome,
-        tipo: tipo,
-        imagem: imagem,
+    const data = {
+        nome: artNome.value.trim(),
+        tipo: artTipo.value.trim(),
+        empresa: artEmpresa.value.trim(),
+        debutMusica: artDebutMusica.value.trim(),
+        debutAno: artDebutAno.value.trim(),
+        tiktok: artTiktok.value.trim(),
+        imagem: converterDrive(artImagem.value.trim()),
         likes: 0,
         dislikes: 0,
         owner: empresaLogada,
         createdAt: new Date()
-    })
-    .then(()=>{
+    };
+
+    if(!data.nome || !data.tipo || !data.imagem){
+        alert("Preencha pelo menos nome, tipo e imagem");
+        return;
+    }
+
+    db.collection("artist").add(data).then(()=>{
         alert("Artista publicado!");
         carregarArtistas();
-    })
-    .catch(e=>{
-        console.error(e);
-        alert("Erro ao salvar artista");
     });
 }
 
-// CARREGAR ARTISTAS
+// ======== CARREGAR ========
 function carregarArtistas(){
-    const area = document.getElementById("artistsArea");
-    area.innerHTML="";
-
-    db.collection("artist").orderBy("createdAt","desc").get().then(snapshot=>{
+    db.collection("artist").orderBy("createdAt","desc")
+    .onSnapshot(snapshot=>{
+        artists.innerHTML="";
         snapshot.forEach(doc=>{
             const a = doc.data();
 
-            let excluirBtn = "";
-            if(empresaLogada === a.owner){
-                excluirBtn = `<button onclick="excluirArtista('${doc.id}')">Excluir</button>`;
-            }
-
-            area.innerHTML += `
-                <div class="artistCard">
-                    <img src="${a.imagem}">
-                    <h3>${a.nome}</h3>
-                    <p>${a.tipo}</p>
-                    <p>👍 ${a.likes} | 👎 ${a.dislikes}</p>
-                    <button onclick="like('${doc.id}', ${a.likes})">Like</button>
-                    <button onclick="dislike('${doc.id}', ${a.dislikes})">Dislike</button>
-                    ${excluirBtn}
-                </div>
+            artists.innerHTML += `
+            <div class="artistCard">
+                <img src="${a.imagem}">
+                <h3>${a.nome}</h3>
+                <p>${a.tipo}</p>
+                <p><b>${a.empresa || ""}</b></p>
+                <p>Debut: ${a.debutMusica || ""} (${a.debutAno || ""})</p>
+                <p>${a.tiktok || ""}</p>
+                <p>👍 ${a.likes || 0} | 👎 ${a.dislikes || 0}</p>
+                <button onclick="like('${doc.id}', ${a.likes || 0})">Like</button>
+                <button onclick="dislike('${doc.id}', ${a.dislikes || 0})">Dislike</button>
+                ${empresaLogada === a.owner ? `<button onclick="excluir('${doc.id}')">Excluir</button>` : ""}
+            </div>
             `;
         });
     });
 }
 
-// LIKE
-function like(id, likes){
-    db.collection("artist").doc(id).update({
-        likes: likes + 1
-    }).then(carregarArtistas);
+// ======== LIKE/DISLIKE ========
+function like(id, valor){
+    db.collection("artist").doc(id).update({likes: valor+1});
 }
 
-// DISLIKE
-function dislike(id, dislikes){
-    db.collection("artist").doc(id).update({
-        dislikes: dislikes + 1
-    }).then(carregarArtistas);
+function dislike(id, valor){
+    db.collection("artist").doc(id).update({dislikes: valor+1});
 }
 
-// EXCLUIR
-function excluirArtista(id){
-    db.collection("artist").doc(id).delete().then(()=>{
-        carregarArtistas();
-    });
+// ======== EXCLUIR ========
+function excluir(id){
+    db.collection("artist").doc(id).delete();
 }
-
-// INICIAR
-carregarArtistas();
 </script></body>
 </html>
