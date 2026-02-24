@@ -8,125 +8,50 @@
 <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
 
 <style>
-body{
-    font-family: Arial;
-    background:#111;
-    color:white;
-    text-align:center;
-    margin:0;
-}
-
-header{
-    background:black;
-    padding:20px;
-    font-size:28px;
-    font-weight:bold;
-    color:gold;
-}
-
-#warning{
-    background:#222;
-    padding:12px;
-    font-size:15px;
-}
-
-#loginArea{
-    margin:25px;
-}
-
-input, button{
-    padding:10px;
-    margin:6px;
-    border-radius:6px;
-    border:none;
-}
-
-button{
-    background:gold;
-    font-weight:bold;
-    cursor:pointer;
-}
-
-#adminPanel{
-    display:none;
-    margin:20px;
-    background:#222;
-    padding:20px;
-    border-radius:10px;
-}
-
-#artists{
-    display:flex;
-    flex-wrap:wrap;
-    justify-content:center;
-    gap:20px;
-    padding:20px;
-}
-
-.card{
-    background:#1a1a1a;
-    border:3px solid gold;
-    border-radius:15px;
-    width:260px;
-    padding:15px;
-}
-
-.card img{
-    width:100%;
-    height:auto;
-    border-radius:10px;
-}
-
-.name{
-    font-size:20px;
-    font-weight:bold;
-    margin-top:10px;
-}
-
-.info{
-    font-size:14px;
-    margin:3px 0;
-}
-
-.reactions{
-    margin-top:10px;
-}
-
-.reactions img{
-    width:28px;
-    cursor:pointer;
-    margin:5px;
-}
-
-.deleteBtn{
-    background:red;
-    color:white;
-    margin-top:10px;
-}
+body{font-family:Arial;background:#111;color:white;text-align:center;margin:0;}
+header{background:black;padding:20px;font-size:28px;color:gold;font-weight:bold;}
+#warning{background:#222;padding:12px;}
+input,button{padding:10px;margin:6px;border-radius:6px;border:none;}
+button{background:gold;font-weight:bold;cursor:pointer;}
+#adminPanel{display:none;background:#222;padding:20px;margin:20px;border-radius:10px;}
+#artists{display:flex;flex-wrap:wrap;justify-content:center;gap:20px;padding:20px;}
+.card{background:#1a1a1a;border:3px solid gold;border-radius:15px;width:260px;padding:15px;}
+.card img{width:100%;border-radius:10px;}
+.reactions img{width:28px;cursor:pointer;margin:5px;}
+.deleteBtn{background:red;color:white;margin-top:10px;}
 </style>
 </head>
 <body>
 
 <header>R-Net Artists</header>
+<div id="warning">Aprecie todos os grupos aqui</div>
 
-<div id="warning">
-Aprecie todos os grupos aqui
-</div>
-
+<!-- LOGIN / CADASTRO -->
 <div id="loginArea">
-<input id="empresaNome" placeholder="Nome da empresa"><br>
-<input id="empresaSenha" type="password" placeholder="Senha"><br>
-<button onclick="enterAdmin()">Entrar como Empresa</button>
+
+<h3>Entrar como Empresa</h3>
+<input id="loginNome" placeholder="Nome da empresa"><br>
+<input id="loginSenha" type="password" placeholder="Senha"><br>
+<button onclick="loginEmpresa()">Entrar</button>
+
+<h3>Cadastrar nova Empresa</h3>
+<input id="cadNome" placeholder="Nome da empresa"><br>
+<input id="cadSenha" type="password" placeholder="Senha"><br>
+<button onclick="cadastrarEmpresa()">Cadastrar empresa</button>
+
+<br><br>
 <button onclick="enterVisitor()">Entrar como Visitante</button>
+
 </div>
 
+<!-- PAINEL EMPRESA -->
 <div id="adminPanel">
 <h3>Cadastrar Artista</h3>
 <input id="name" placeholder="Nome"><br>
 <input id="type" placeholder="Grupo ou Solista"><br>
 <input id="company" placeholder="Empresa"><br>
 <input id="debut" placeholder="Ano de debut"><br>
-<input id="debutSong" placeholder="Música de debut"><br>
+<input id="debutSong" placeholder="Música debut"><br>
 <input id="tiktok" placeholder="@tiktok"><br>
 <input id="image" placeholder="URL da imagem"><br>
 <button onclick="addArtist()">Cadastrar</button>
@@ -135,141 +60,151 @@ Aprecie todos os grupos aqui
 <div id="artists"></div>
 
 <script>
-// ================= FIREBASE =================
+// FIREBASE
 const firebaseConfig = {
-  apiKey: "AIzaSyAtv9gmTCvlor0zkdLzqWQbheeahr2xy9U",
+apiKey: "AIzaSyAtv9gmTCvlor0zkdLzqWQbheeahr2xy9U",
 authDomain: "rnet-artist.firebaseapp.com",
 projectId: "rnet-artist",
+storageBucket: "rnet-artist.firebasestorage.app",
+messagingSenderId: "177874343578",
+appId: "1:177874343578:web:00936bd86e08ff2c6d3123"
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// ============ LOGIN EMPRESA ============
-// Você pode mudar esses dados
-const EMPRESA_NOME = "RNET";
-const EMPRESA_SENHA = "1234";
-
 let currentUser = "visitor";
 
-// ================= LOGIN =================
-function enterAdmin(){
-    const nome = document.getElementById("empresaNome").value;
-    const senha = document.getElementById("empresaSenha").value;
+// CADASTRAR EMPRESA
+function cadastrarEmpresa(){
+const nome = cadNome.value.trim();
+const senha = cadSenha.value.trim();
 
-    if(nome === EMPRESA_NOME && senha === EMPRESA_SENHA){
-        currentUser = nome;
-        document.getElementById("adminPanel").style.display="block";
-        document.getElementById("loginArea").style.display="none";
-        loadArtists();
-        confetti();
-    }else{
-        alert("Nome ou senha incorretos");
-    }
+if(!nome || !senha){
+alert("Preencha tudo");
+return;
 }
 
+db.collection("companies").doc(nome).set({
+senha: senha,
+createdAt: new Date()
+}).then(()=>{
+alert("Empresa cadastrada!");
+});
+}
+
+// LOGIN EMPRESA
+function loginEmpresa(){
+const nome = loginNome.value.trim();
+const senha = loginSenha.value.trim();
+
+db.collection("companies").doc(nome).get().then(doc=>{
+if(doc.exists && doc.data().senha === senha){
+currentUser = nome;
+loginArea.style.display="none";
+adminPanel.style.display="block";
+loadArtists();
+confetti();
+}else{
+alert("Empresa ou senha incorreta");
+}
+});
+}
+
+// VISITANTE
 function enterVisitor(){
-    currentUser = "visitor";
-    document.getElementById("loginArea").style.display="none";
-    loadArtists();
-    confetti();
+currentUser = "visitor";
+loginArea.style.display="none";
+loadArtists();
+confetti();
 }
 
-// ================= CADASTRAR =================
+// CADASTRAR ARTISTA
 function addArtist(){
-    db.collection("artist").add({
-        name: name.value,
-        type: type.value,
-        company: company.value,
-        debut: debut.value,
-        debutSong: debutSong.value,
-        tiktok: tiktok.value,
-        image: image.value,
-        likes: 0,
-        dislikes: 0,
-        owner: currentUser,
-        createdAt: new Date()
-    });
+db.collection("artist").add({
+name: name.value,
+type: type.value,
+company: company.value,
+debut: debut.value,
+debutSong: debutSong.value,
+tiktok: tiktok.value,
+image: image.value,
+likes: 0,
+dislikes: 0,
+owner: currentUser,
+createdAt: new Date()
+});
 }
 
-// ================= LISTAR =================
+// LISTAR ARTISTAS (tempo real)
 function loadArtists(){
-    db.collection("artist")
-    .orderBy("createdAt","desc")
-    .onSnapshot(snapshot=>{
-        artists.innerHTML="";
+db.collection("artist")
+.orderBy("createdAt","desc")
+.onSnapshot(snapshot=>{
+artists.innerHTML="";
+snapshot.forEach(doc=>{
+const a = doc.data();
 
-        snapshot.forEach(doc=>{
-            const a = doc.data();
-
-            let deleteButton = "";
-            if(currentUser !== "visitor" && currentUser === a.owner){
-                deleteButton = `<button class="deleteBtn" onclick="deleteArtist('${doc.id}')">Excluir</button>`;
-            }
-
-            artists.innerHTML += `
-            <div class="card">
-                <img src="${a.image}">
-                <div class="name">${a.name}</div>
-                <div class="info">${a.type}</div>
-                <div class="info">${a.company}</div>
-                <div class="info">Debut: ${a.debut}</div>
-                <div class="info">Song: ${a.debutSong}</div>
-                <div class="info">${a.tiktok}</div>
-
-                <div class="reactions">
-                    <img src="like.png" onclick="like('${doc.id}', ${a.likes || 0})"> ${a.likes || 0}
-                    <img src="deslike.png" onclick="dislike('${doc.id}', ${a.dislikes || 0})"> ${a.dislikes || 0}
-                </div>
-
-                ${deleteButton}
-            </div>
-            `;
-        });
-    });
+let deleteBtn="";
+if(currentUser === a.owner){
+deleteBtn = `<button class="deleteBtn" onclick="deleteArtist('${doc.id}')">Excluir</button>`;
 }
 
-// ================= EXCLUIR =================
+artists.innerHTML += `
+<div class="card">
+<img src="${a.image}">
+<div><b>${a.name}</b></div>
+<div>${a.type}</div>
+<div>${a.company}</div>
+<div>Debut: ${a.debut}</div>
+<div>${a.debutSong}</div>
+<div>${a.tiktok}</div>
+
+<div class="reactions">
+<img src="like.png" onclick="like('${doc.id}', ${a.likes||0})"> ${a.likes||0}
+<img src="deslike.png" onclick="dislike('${doc.id}', ${a.dislikes||0})"> ${a.dislikes||0}
+</div>
+
+${deleteBtn}
+</div>
+`;
+});
+});
+}
+
+// EXCLUIR
 function deleteArtist(id){
-    db.collection("artist").doc(id).delete();
+db.collection("artist").doc(id).delete();
 }
 
-// ================= LIKE =================
-function like(id, current){
-    db.collection("artist").doc(id).update({
-        likes: current + 1
-    });
+// LIKE
+function like(id, atual){
+db.collection("artist").doc(id).update({likes: atual+1});
 }
 
-function dislike(id, current){
-    db.collection("artist").doc(id).update({
-        dislikes: current + 1
-    });
+function dislike(id, atual){
+db.collection("artist").doc(id).update({dislikes: atual+1});
 }
 
-// ================= CONFETE =================
+// CONFETE
 function confetti(){
-    for(let i=0;i<80;i++){
-        const c = document.createElement("div");
-        c.style.position="fixed";
-        c.style.width="6px";
-        c.style.height="6px";
-        c.style.background="gold";
-        c.style.left=Math.random()*100+"%";
-        c.style.top="-10px";
-        c.style.opacity="0.8";
-        c.style.zIndex="999";
-        document.body.appendChild(c);
-
-        let fall = setInterval(()=>{
-            let top = parseInt(c.style.top);
-            c.style.top = top + 4 + "px";
-            if(top > window.innerHeight){
-                clearInterval(fall);
-                c.remove();
-            }
-        },20);
-    }
+for(let i=0;i<60;i++){
+const c=document.createElement("div");
+c.style.position="fixed";
+c.style.width="6px";
+c.style.height="6px";
+c.style.background="gold";
+c.style.left=Math.random()*100+"%";
+c.style.top="-10px";
+document.body.appendChild(c);
+let fall=setInterval(()=>{
+c.style.top=parseInt(c.style.top)+5+"px";
+if(parseInt(c.style.top)>window.innerHeight){
+clearInterval(fall);
+c.remove();
+}
+},20);
+}
 }
 </script>
 
