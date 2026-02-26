@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>R-Net Profile</title>
+
+<style>
+body{
+    margin:0;
+    font-family:Arial, Helvetica, sans-serif;
+    background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);
+    color:white;
+}
+
+/* TELAS */
+.screen{
+    display:none;
+    min-height:100vh;
+}
+
+.active{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+/* LOGIN */
+.login-box{
+    background:#111;
+    padding:40px;
+    border-radius:20px;
+    width:350px;
+    box-shadow:0 0 40px gold;
+    border:2px solid gold;
+}
+
+.login-box h1{
+    text-align:center;
+    color:gold;
+}
+
+input{
+    width:100%;
+    padding:12px;
+    margin:10px 0;
+    border:none;
+    border-radius:10px;
+}
+
+button{
+    width:100%;
+    padding:12px;
+    margin-top:10px;
+    border:none;
+    border-radius:20px;
+    font-weight:bold;
+    cursor:pointer;
+    background:gold;
+}
+
+/* PROFILE */
+.profile-container{
+    padding:40px;
+    text-align:center;
+}
+
+.avatar{
+    width:220px;
+    height:320px;
+    margin:20px auto;
+    position:relative;
+}
+
+.avatar img{
+    position:absolute;
+    width:100%;
+    left:0;
+}
+
+/* BOTÕES CUSTOMIZAÇÃO */
+.controls{
+    margin-top:20px;
+}
+
+.controls button{
+    width:auto;
+    padding:10px 15px;
+    margin:5px;
+    background:#222;
+    color:white;
+    border:1px solid gold;
+}
+
+.save-btn{
+    background:gold;
+    color:black;
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="screen active" id="loginScreen">
+    <div class="login-box">
+        <h1>R-Net Login</h1>
+        <input type="text" id="username" placeholder="Nome">
+        <input type="password" id="password" placeholder="Senha">
+        <button onclick="register()">Cadastrar</button>
+        <button onclick="login()">Entrar</button>
+    </div>
+</div>
+
+<!-- PROFILE -->
+<div class="screen" id="profileScreen">
+    <div class="profile-container">
+        <h1 id="welcome"></h1>
+
+        <div class="avatar">
+            <img src="avatar/base.png">
+            <img id="faceLayer" src="avatar/face1.png">
+            <img id="hairLayer" src="avatar/hair1.png">
+            <img id="outfitLayer" src="avatar/outfit1.png">
+        </div>
+
+        <div class="controls">
+            <h3>Rosto</h3>
+            <button onclick="changeFace('face1.png')">Rosto 1</button>
+            <button onclick="changeFace('face2.png')">Rosto 2</button>
+
+            <h3>Cabelo</h3>
+            <button onclick="changeHair('hair1.png')">Cabelo 1</button>
+            <button onclick="changeHair('hair2.png')">Cabelo 2</button>
+
+            <h3>Roupa</h3>
+            <button onclick="changeOutfit('outfit1.png')">Outfit 1</button>
+            <button onclick="changeOutfit('outfit2.png')">Outfit 2</button>
+        </div>
+
+        <button class="save-btn" onclick="saveProfile()">Salvar Avatar</button>
+        <button onclick="logout()">Sair</button>
+    </div>
+</div>
+
+<script>
+let currentUser = null;
+
+let avatarData = {
+    face: "face1.png",
+    hair: "hair1.png",
+    outfit: "outfit1.png"
+};
+
+/* CADASTRAR */
+function register(){
+    const user = username.value;
+    const pass = password.value;
+
+    if(!user || !pass) return alert("Preencha tudo");
+
+    localStorage.setItem("user_"+user, JSON.stringify({
+        password: pass,
+        avatar: avatarData
+    }));
+
+    alert("Conta criada!");
+}
+
+/* LOGIN */
+function login(){
+    const user = username.value;
+    const pass = password.value;
+
+    const data = JSON.parse(localStorage.getItem("user_"+user));
+
+    if(!data || data.password !== pass){
+        return alert("Conta inválida");
+    }
+
+    currentUser = user;
+    avatarData = data.avatar;
+
+    loadAvatar();
+    showProfile();
+}
+
+/* MOSTRAR PROFILE */
+function showProfile(){
+    loginScreen.classList.remove("active");
+    profileScreen.classList.add("active");
+    welcome.innerText = "Bem-vindo, " + currentUser;
+}
+
+/* TROCAR */
+function changeFace(f){
+    avatarData.face = f;
+    faceLayer.src = "avatar/"+f;
+}
+
+function changeHair(h){
+    avatarData.hair = h;
+    hairLayer.src = "avatar/"+h;
+}
+
+function changeOutfit(o){
+    avatarData.outfit = o;
+    outfitLayer.src = "avatar/"+o;
+}
+
+/* SALVAR */
+function saveProfile(){
+    const data = JSON.parse(localStorage.getItem("user_"+currentUser));
+    data.avatar = avatarData;
+    localStorage.setItem("user_"+currentUser, JSON.stringify(data));
+    alert("Avatar salvo!");
+}
+
+/* CARREGAR */
+function loadAvatar(){
+    faceLayer.src = "avatar/"+avatarData.face;
+    hairLayer.src = "avatar/"+avatarData.hair;
+    outfitLayer.src = "avatar/"+avatarData.outfit;
+}
+
+/* LOGOUT */
+function logout(){
+    location.reload();
+}
+</script>
+
+</body>
+</html>
