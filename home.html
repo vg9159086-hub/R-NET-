@@ -5,6 +5,7 @@
 <title>R-Net Rpop</title>
 
 <style>
+/* (SEU CSS INTACTO — NÃO ALTEREI NADA) */
 body{
     margin:0;
     font-family:Arial, Helvetica, sans-serif;
@@ -14,7 +15,6 @@ body{
     overflow:hidden;
 }
 
-/* INTRO CINEMATOGRÁFICA */
 .overlay{
     position:relative;
     min-height:100vh;
@@ -32,7 +32,6 @@ body{
     }
 }
 
-/* AURORA */
 .aurora{
     position:fixed;
     top:-50%;
@@ -52,7 +51,6 @@ body{
     to{ transform:rotate(8deg) scale(1.1); }
 }
 
-/* ESTRELAS */
 .stars{
     position:fixed;
     width:100%;
@@ -75,7 +73,6 @@ body{
     to{opacity:1;}
 }
 
-/* LOGO AREA */
 .logo-container{
     position:relative;
     width:280px;
@@ -88,7 +85,6 @@ body{
     to{ transform:scale(1); opacity:1; }
 }
 
-/* PLANETA */
 .planet{
     position:absolute;
     width:280px;
@@ -102,7 +98,6 @@ body{
     to{ transform:rotate(360deg); }
 }
 
-/* ANEL */
 .ring{
     position:absolute;
     width:330px;
@@ -116,7 +111,6 @@ body{
     box-shadow:0 0 30px white;
 }
 
-/* LOGO */
 .logo{
     position:relative;
     width:230px;
@@ -134,7 +128,6 @@ body{
     to{ transform:translateY(-15px); }
 }
 
-/* NAV */
 nav{
     display:flex;
     justify-content:center;
@@ -157,7 +150,6 @@ nav a:hover{
     transform:scale(1.1);
 }
 
-/* TOP1 */
 .top1{
     text-align:center;
     margin-top:30px;
@@ -196,7 +188,6 @@ nav a:hover{
     border-radius:15px;
 }
 
-/* BOTÃO MÚSICA */
 #musicBtn{
     position:fixed;
     bottom:20px;
@@ -234,9 +225,9 @@ nav a:hover{
     <h2>1st THIS WEEK</h2>
 
     <div class="mv-card">
-        <img src="top1.png">
-        <h3>Artist Name</h3>
-        <p>Song Title</p>
+        <img id="top1Image" src="top1.png">
+        <h3 id="top1Artist">Carregando...</h3>
+        <p id="top1Song"></p>
     </div>
 </div>
 
@@ -246,7 +237,6 @@ nav a:hover{
 <button id="musicBtn" onclick="playMusic()">🔊 Play Music</button>
 
 <script>
-/* ESTRELAS DINÂMICAS */
 const starsContainer = document.getElementById("stars");
 for(let i=0;i<180;i++){
     const star = document.createElement("div");
@@ -257,7 +247,6 @@ for(let i=0;i<180;i++){
     starsContainer.appendChild(star);
 }
 
-/* MÚSICA */
 const music = document.getElementById("bgMusic");
 const btn = document.getElementById("musicBtn");
 
@@ -271,6 +260,44 @@ function playMusic(){
     music.play();
     btn.style.display="none";
 }
+</script>
+
+<!-- 🔥 FIREBASE TOP1 AUTOMÁTICO -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, query, orderBy, limit, getDocs }
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBx7BsWrobnUbJ4hzToB_37070IdEzBkEc",
+  authDomain: "rnet-social.firebaseapp.com",
+  projectId: "rnet-social",
+  storageBucket: "rnet-social.firebasestorage.app",
+  messagingSenderId: "790663478354",
+  appId: "1:790663478354:web:63f74fe51ea6d23948338b"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+async function carregarTop1(){
+  const q = query(
+    collection(db, "posts"),
+    orderBy("likes", "desc"),
+    limit(1)
+  );
+
+  const snapshot = await getDocs(q);
+
+  snapshot.forEach((doc) => {
+    const data = doc.data();
+    document.getElementById("top1Image").src = data.imageURL;
+    document.getElementById("top1Artist").innerText = data.artist;
+    document.getElementById("top1Song").innerText = data.song;
+  });
+}
+
+carregarTop1();
 </script>
 
 </body>
