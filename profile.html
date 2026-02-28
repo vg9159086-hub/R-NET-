@@ -2,230 +2,199 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>R-Net Profile</title>
+<title>Rnet Social</title>
 
 <style>
 body{
-    margin:0;
-    font-family:Arial, Helvetica, sans-serif;
-    background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);
-    color:white;
+  margin:0;
+  font-family:Arial;
+  background:#0f0f0f;
+  color:white;
 }
 
-/* TELAS */
-.screen{
-    display:none;
-    min-height:100vh;
+.container{
+  max-width:500px;
+  margin:auto;
+  padding:20px;
 }
 
-.active{
-    display:flex;
-    justify-content:center;
-    align-items:center;
-}
-
-/* LOGIN */
-.login-box{
-    background:#111;
-    padding:40px;
-    border-radius:20px;
-    width:350px;
-    box-shadow:0 0 40px gold;
-    border:2px solid gold;
-}
-
-.login-box h1{
-    text-align:center;
-    color:gold;
-}
-
-input{
-    width:100%;
-    padding:12px;
-    margin:10px 0;
-    border:none;
-    border-radius:10px;
+input, textarea{
+  width:100%;
+  padding:10px;
+  margin:5px 0;
+  border:none;
+  border-radius:8px;
 }
 
 button{
-    width:100%;
-    padding:12px;
-    margin-top:10px;
-    border:none;
-    border-radius:20px;
-    font-weight:bold;
-    cursor:pointer;
-    background:gold;
+  padding:10px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  background:#5865f2;
+  color:white;
+  width:100%;
+  margin-top:5px;
 }
 
-/* PROFILE */
-.profile-container{
-    padding:40px;
-    text-align:center;
+.card{
+  background:#1a1a1a;
+  padding:15px;
+  border-radius:12px;
+  margin-top:15px;
 }
 
-.avatar{
-    width:220px;
-    height:320px;
-    margin:20px auto;
-    position:relative;
-}
-
-.avatar img{
-    position:absolute;
-    width:100%;
-    left:0;
-}
-
-/* BOTÕES CUSTOMIZAÇÃO */
-.controls{
-    margin-top:20px;
-}
-
-.controls button{
-    width:auto;
-    padding:10px 15px;
-    margin:5px;
-    background:#222;
-    color:white;
-    border:1px solid gold;
-}
-
-.save-btn{
-    background:gold;
-    color:black;
+img, video{
+  width:100%;
+  border-radius:12px;
+  margin-top:10px;
 }
 </style>
 </head>
 <body>
 
-<!-- LOGIN -->
-<div class="screen active" id="loginScreen">
-    <div class="login-box">
-        <h1>R-Net Login</h1>
-        <input type="text" id="username" placeholder="Nome">
-        <input type="password" id="password" placeholder="Senha">
-        <button onclick="register()">Cadastrar</button>
-        <button onclick="login()">Entrar</button>
-    </div>
+<div class="container">
+
+<h2>Rnet Social</h2>
+
+<div id="authArea">
+<input type="email" id="email" placeholder="Email">
+<input type="password" id="password" placeholder="Senha">
+<button onclick="register()">Cadastrar</button>
+<button onclick="login()">Entrar</button>
 </div>
 
-<!-- PROFILE -->
-<div class="screen" id="profileScreen">
-    <div class="profile-container">
-        <h1 id="welcome"></h1>
+<div id="app" style="display:none;">
 
-        <div class="avatar">
-            <img src="base.png">
-            <img id="faceLayer" src="face1.png">
-            <img id="hairLayer" src="hair1.png">
-            <img id="outfitLayer" src="outfit1.png">
-        </div>
+<h3>Perfil</h3>
+<p id="usernameDisplay"></p>
+<p>Seguidores: <span id="followersCount">0</span></p>
+<p>Seguindo: <span id="followingCount">0</span></p>
 
-        <div class="controls">
-            <h3>Rosto</h3>
-            <button onclick="changeFace('face1.png')">Rosto 1</button>
-            <button onclick="changeFace('face2.png')">Rosto 2</button>
+<hr>
 
-            <h3>Cabelo</h3>
-            <button onclick="changeHair('hair1.png')">Cabelo 1</button>
-            <button onclick="changeHair('hair2.png')">Cabelo 2</button>
+<h3>Criar Post</h3>
+<input type="text" id="mediaUrl" placeholder="Link da imagem ou vídeo">
+<textarea id="caption" placeholder="Legenda"></textarea>
+<button onclick="createPost()">Postar</button>
 
-            <h3>Roupa</h3>
-            <button onclick="changeOutfit('outfit1.png')">Outfit 1</button>
-            <button onclick="changeOutfit('outfit2.png')">Outfit 2</button>
-        </div>
+<hr>
 
-        <button class="save-btn" onclick="saveProfile()">Salvar Avatar</button>
-        <button onclick="logout()">Sair</button>
-    </div>
+<h3>Feed</h3>
+<div id="feed"></div>
+
 </div>
 
-<script>
-let currentUser = null;
+</div>
 
-let avatarData = {
-    face: "face1.png",
-    hair: "hair1.png",
-    outfit: "outfit1.png"
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, increment, addDoc, collection, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBx7BsWrobnUbJ4hzToB_37070IdEzBkEc",
+  authDomain: "rnet-social.firebaseapp.com",
+  projectId: "rnet-social",
+  storageBucket: "rnet-social.firebasestorage.app",
+  messagingSenderId: "790663478354",
+  appId: "1:790663478354:web:63f74fe51ea6d23948338b"
 };
 
-/* CADASTRAR */
-function register(){
-    const user = username.value;
-    const pass = password.value;
+const app = initializeApp(firebaseConfig);
+const auth = getAuth();
+const db = getFirestore();
 
-    if(!user || !pass) return alert("Preencha tudo");
+let currentUser = null;
 
-    localStorage.setItem("user_"+user, JSON.stringify({
-        password: pass,
-        avatar: avatarData
-    }));
+window.register = async () => {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
 
-    alert("Conta criada!");
-}
+  const userCred = await createUserWithEmailAndPassword(auth,email,password);
+  const user = userCred.user;
 
-/* LOGIN */
-function login(){
-    const user = username.value;
-    const pass = password.value;
+  await setDoc(doc(db,"users",user.uid),{
+    username: email.split("@")[0],
+    followersCount:0,
+    followingCount:0,
+    verified:false
+  });
 
-    const data = JSON.parse(localStorage.getItem("user_"+user));
+  alert("Conta criada!");
+};
 
-    if(!data || data.password !== pass){
-        return alert("Conta inválida");
-    }
+window.login = async () => {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
 
+  await signInWithEmailAndPassword(auth,email,password);
+};
+
+onAuthStateChanged(auth, async (user)=>{
+  if(user){
     currentUser = user;
-    avatarData = data.avatar;
+    document.getElementById("authArea").style.display="none";
+    document.getElementById("app").style.display="block";
 
-    loadAvatar();
-    showProfile();
+    const snap = await getDoc(doc(db,"users",user.uid));
+    const data = snap.data();
+
+    document.getElementById("usernameDisplay").innerText =
+      data.username + (data.verified ? " ✔" : "");
+
+    document.getElementById("followersCount").innerText = data.followersCount;
+    document.getElementById("followingCount").innerText = data.followingCount;
+
+    loadFeed();
+  }
+});
+
+window.createPost = async () => {
+  const mediaUrl = document.getElementById("mediaUrl").value;
+  const caption = document.getElementById("caption").value;
+
+  const userSnap = await getDoc(doc(db,"users",currentUser.uid));
+  const userData = userSnap.data();
+
+  await addDoc(collection(db,"Post"),{
+    uid:currentUser.uid,
+    username:userData.username,
+    mediaUrl:mediaUrl,
+    caption:caption,
+    timestamp:serverTimestamp()
+  });
+
+  alert("Post criado!");
+  loadFeed();
+};
+
+async function loadFeed(){
+  const feed = document.getElementById("feed");
+  feed.innerHTML="";
+
+  const querySnapshot = await getDocs(collection(db,"Post"));
+
+  querySnapshot.forEach((docSnap)=>{
+    const data = docSnap.data();
+
+    const div = document.createElement("div");
+    div.className="card";
+
+    div.innerHTML = `
+      <b>${data.username}</b>
+      <p>${data.caption}</p>
+      ${data.mediaUrl.includes("mp4") ?
+        `<video controls src="${data.mediaUrl}"></video>` :
+        `<img src="${data.mediaUrl}">`
+      }
+    `;
+
+    feed.appendChild(div);
+  });
 }
 
-/* MOSTRAR PROFILE */
-function showProfile(){
-    loginScreen.classList.remove("active");
-    profileScreen.classList.add("active");
-    welcome.innerText = "Bem-vindo, " + currentUser;
-}
-
-/* TROCAR */
-function changeFace(f){
-    avatarData.face = f;
-    faceLayer.src = "avatar/"+f;
-}
-
-function changeHair(h){
-    avatarData.hair = h;
-    hairLayer.src = "avatar/"+h;
-}
-
-function changeOutfit(o){
-    avatarData.outfit = o;
-    outfitLayer.src = "avatar/"+o;
-}
-
-/* SALVAR */
-function saveProfile(){
-    const data = JSON.parse(localStorage.getItem("user_"+currentUser));
-    data.avatar = avatarData;
-    localStorage.setItem("user_"+currentUser, JSON.stringify(data));
-    alert("Avatar salvo!");
-}
-
-/* CARREGAR */
-function loadAvatar(){
-    faceLayer.src = "avatar/"+avatarData.face;
-    hairLayer.src = "avatar/"+avatarData.hair;
-    outfitLayer.src = "avatar/"+avatarData.outfit;
-}
-
-/* LOGOUT */
-function logout(){
-    location.reload();
-}
 </script>
-
 </body>
 </html>
