@@ -14,22 +14,22 @@ body{
     overflow:hidden;
 }
 
-/* INTRO CINEMATOGRÁFICA */
+/* CAMADAS */
+.aurora{ z-index:1; }
+.stars{ z-index:2; }
+.overlay{ z-index:3; }
+
+/* INTRO */
 .overlay{
     position:relative;
     min-height:100vh;
     background:rgba(0,0,0,0.8);
-    z-index:2;
     opacity:0;
-    filter:blur(10px);
-    animation:intro 3s ease forwards;
+    animation:intro 2s ease forwards;
 }
 
 @keyframes intro{
-    to{
-        opacity:1;
-        filter:blur(0);
-    }
+    to{ opacity:1; }
 }
 
 /* AURORA */
@@ -41,10 +41,9 @@ body{
     height:200%;
     background:
         radial-gradient(circle at 30% 70%, rgba(0,255,200,0.15), transparent 40%),
-        radial-gradient(circle at 70% 40%, rgba(0,150,255,0.15), transparent 40%),
-        radial-gradient(circle at 50% 50%, rgba(255,0,200,0.1), transparent 50%);
+        radial-gradient(circle at 70% 40%, rgba(0,150,255,0.15), transparent 40%);
     animation:auroraMove 20s infinite alternate ease-in-out;
-    z-index:1;
+    position:fixed;
 }
 
 @keyframes auroraMove{
@@ -57,7 +56,6 @@ body{
     position:fixed;
     width:100%;
     height:100%;
-    z-index:1;
 }
 
 .star{
@@ -67,11 +65,10 @@ body{
     background:white;
     border-radius:50%;
     animation:twinkle 2s infinite alternate;
-    box-shadow:0 0 10px white;
 }
 
 @keyframes twinkle{
-    from{opacity:0.2;}
+    from{opacity:0.3;}
     to{opacity:1;}
 }
 
@@ -80,21 +77,14 @@ body{
     position:relative;
     width:280px;
     margin:90px auto 40px;
-    animation:logoIntro 3s ease forwards;
-}
-
-@keyframes logoIntro{
-    from{ transform:scale(0.6); opacity:0; }
-    to{ transform:scale(1); opacity:1; }
+    z-index:5;
 }
 
 /* PLANETA */
 .planet{
     position:absolute;
     width:280px;
-    z-index:1;
     animation:planetRotate 60s linear infinite;
-    filter:drop-shadow(0 0 40px rgba(0,150,255,0.9));
 }
 
 @keyframes planetRotate{
@@ -112,8 +102,6 @@ body{
     top:100px;
     left:-25px;
     transform:rotate(18deg);
-    z-index:2;
-    box-shadow:0 0 30px white;
 }
 
 /* LOGO */
@@ -122,19 +110,10 @@ body{
     width:230px;
     margin:25px auto 0;
     display:block;
-    z-index:3;
-    animation:logoFloat 4s infinite ease-in-out alternate;
-    filter:
-        drop-shadow(0 0 25px gold)
-        drop-shadow(0 0 50px orange);
+    z-index:6;
 }
 
-@keyframes logoFloat{
-    from{ transform:translateY(0); }
-    to{ transform:translateY(-15px); }
-}
-
-/* NAV */
+/* NAV CORRIGIDO */
 nav{
     display:flex;
     justify-content:center;
@@ -142,6 +121,8 @@ nav{
     padding:20px;
     font-size:18px;
     letter-spacing:3px;
+    position:relative;
+    z-index:10; /* AGORA FICA NA FRENTE */
 }
 
 nav a{
@@ -153,10 +134,9 @@ nav a{
 nav a:hover{
     color:gold;
     text-shadow:0 0 20px gold;
-    transform:scale(1.1);
 }
 
-/* QUADRO CINEMATOGRÁFICO */
+/* QUADRO */
 .inauguracao{
     text-align:center;
     margin:40px auto;
@@ -166,48 +146,12 @@ nav a:hover{
     border-radius:25px;
     padding:35px;
     box-shadow:0 0 40px rgba(255,215,0,0.6);
-    animation:fadeUp 2s ease forwards 1.5s;
-    opacity:0;
-}
-
-@keyframes fadeUp{
-    from{ transform:translateY(40px); opacity:0; }
-    to{ transform:translateY(0); opacity:1; }
 }
 
 .inauguracao h2{
-    font-size:22px;
-    letter-spacing:8px;
     color:gold;
-    margin-bottom:20px;
-    animation:goldPulse 2s infinite alternate;
 }
 
-@keyframes goldPulse{
-    from{ text-shadow:0 0 15px gold; }
-    to{ text-shadow:0 0 40px gold, 0 0 70px orange; }
-}
-
-.inauguracao p{
-    font-size:15px;
-    line-height:1.8;
-    color:#ddd;
-}
-
-/* BOTÃO MÚSICA */
-#musicBtn{
-    position:fixed;
-    bottom:20px;
-    right:20px;
-    background:gold;
-    border:none;
-    padding:12px 18px;
-    border-radius:25px;
-    cursor:pointer;
-    font-weight:bold;
-    display:none;
-    z-index:5;
-}
 </style>
 </head>
 
@@ -232,42 +176,22 @@ nav a:hover{
 <div class="inauguracao">
     <h2>INAUGURAÇÃO</h2>
     <p>
-        Sejam todos bem-vindos ao R-Net. 🌌<br><br>
-        Estamos iniciando uma nova era para os fãs de Rpop.<br><br>
-        Em breve teremos muito mais opções, novidades e experiências incríveis.<br><br>
-        Por enquanto, aproveitem o <strong>Charts</strong> para fazer suas disputas
-        e apoiar seus artistas favoritos.
+        Sejam todos bem-vindos ao R-Net 🌌<br><br>
+        Em breve teremos muito mais opções.<br><br>
+        Aproveitem o Charts para apoiar seus artistas favoritos.
     </p>
 </div>
 
 </div>
 
-<audio id="bgMusic" src="home.mp3" loop></audio>
-<button id="musicBtn" onclick="playMusic()">🔊 Play Music</button>
-
 <script>
 const starsContainer = document.getElementById("stars");
-for(let i=0;i<180;i++){
+for(let i=0;i<150;i++){
     const star = document.createElement("div");
     star.className="star";
     star.style.top = Math.random()*100+"%";
     star.style.left = Math.random()*100+"%";
-    star.style.animationDuration = (Math.random()*3+1)+"s";
     starsContainer.appendChild(star);
-}
-
-const music = document.getElementById("bgMusic");
-const btn = document.getElementById("musicBtn");
-
-window.addEventListener("load", () => {
-    music.play().catch(() => {
-        btn.style.display = "block";
-    });
-});
-
-function playMusic(){
-    music.play();
-    btn.style.display="none";
 }
 </script>
 
