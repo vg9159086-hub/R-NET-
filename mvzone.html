@@ -43,6 +43,27 @@ button{cursor:pointer}
 <!-- SITE -->
 <div id="site" class="hidden">
 
+<!-- AVISO LEMBRETE -->
+<div style="
+width:90%;
+max-width:600px;
+margin:20px auto;
+background:#1a1a1a;
+border:2px solid gold;
+border-radius:12px;
+padding:20px;
+text-align:center;
+box-shadow:0 0 20px gold;
+animation:glow 1.5s infinite alternate;
+">
+<h3 style="color:gold;margin-bottom:10px;">⚠ LEMBRETE</h3>
+<p style="line-height:1.6;color:#ddd;">
+TODO MÊS O CHART RESETA.<br><br>
+Você precisa colocar seu grupo novamente.<br><br>
+Recomendamos olhar o site pelo menos <strong>1 vez por semana</strong>.
+</p>
+</div>
+
 <header>
 <img src="logo.png" class="logo">
 <nav>
@@ -77,9 +98,9 @@ o R-net surgiu de uma ideia rescente, após uma reunião de colaboradores surgiu
 <script>
 const firebaseConfig={
 apiKey: "AIzaSyDa1Lm_bSz18M11gT0CZio-CG0mOqvBd7I",
-  authDomain: "mvzone-29363.firebaseapp.com",
-  projectId: "mvzone-29363",
-  };
+authDomain: "mvzone-29363.firebaseapp.com",
+projectId: "mvzone-29363",
+};
 
 firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore();
@@ -89,74 +110,20 @@ let currentFirst=null;
 const victorySound=new Audio("victory.mp3");
 
 /* LOGIN */
-function showCompanyLogin(){
-document.getElementById("companyLogin").classList.remove("hidden");
-}
-
-function enterVisitor(){
-document.getElementById("loginScreen").classList.add("hidden");
-document.getElementById("site").classList.remove("hidden");
-}
-
-async function registerCompany(){
-const name=companyName.value;
-const pass=companyPass.value;
-await db.collection("companies").doc(name).set({password:pass});
-alert("Empresa cadastrada!");
-}
-
-async function loginCompany(){
-const name=companyName.value;
-const pass=companyPass.value;
-const doc=await db.collection("companies").doc(name).get();
-if(doc.exists && doc.data().password===pass){
-currentCompany=name;
-document.getElementById("loginScreen").classList.add("hidden");
-document.getElementById("site").classList.remove("hidden");
-document.getElementById("companyPanel").classList.remove("hidden");
-document.getElementById("logoutBtn").classList.remove("hidden");
-}else{
-alert("Login inválido");
-}
-}
-
-function logout(){
-location.reload();
-}
+function showCompanyLogin(){document.getElementById("companyLogin").classList.remove("hidden");}
+function enterVisitor(){document.getElementById("loginScreen").classList.add("hidden");document.getElementById("site").classList.remove("hidden");}
+async function registerCompany(){const name=companyName.value;const pass=companyPass.value;await db.collection("companies").doc(name).set({password:pass});alert("Empresa cadastrada!");}
+async function loginCompany(){const name=companyName.value;const pass=companyPass.value;const doc=await db.collection("companies").doc(name).get();if(doc.exists && doc.data().password===pass){currentCompany=name;document.getElementById("loginScreen").classList.add("hidden");document.getElementById("site").classList.remove("hidden");document.getElementById("companyPanel").classList.remove("hidden");document.getElementById("logoutBtn").classList.remove("hidden");}else{alert("Login inválido");}}
+function logout(){location.reload();}
 
 /* ADICIONAR MV */
-async function addMV(){
-if(!currentCompany)return;
-await db.collection("mvs").add({
-artist:artistInput.value,
-title:musicInput.value,
-url:urlInput.value,
-company:currentCompany,
-points:0,
-createdAt:firebase.firestore.FieldValue.serverTimestamp()
-});
-artistInput.value="";
-musicInput.value="";
-urlInput.value="";
-}
+async function addMV(){if(!currentCompany)return;await db.collection("mvs").add({artist:artistInput.value,title:musicInput.value,url:urlInput.value,company:currentCompany,points:0,createdAt:firebase.firestore.FieldValue.serverTimestamp()});artistInput.value="";musicInput.value="";urlInput.value="";}
 
 /* VOTAR */
-async function vote(id,val){
-const ref=db.collection("mvs").doc(id);
-const doc=await ref.get();
-await ref.update({points:(doc.data().points||0)+val});
-}
+async function vote(id,val){const ref=db.collection("mvs").doc(id);const doc=await ref.get();await ref.update({points:(doc.data().points||0)+val});}
 
 /* REMOVER MV ANTIGO */
-async function removeOld(){
-const now=new Date();
-const snap=await db.collection("mvs").get();
-snap.forEach(doc=>{
-if(!doc.data().createdAt)return;
-const days=(now-doc.data().createdAt.toDate())/(1000*60*60*24);
-if(days>30)doc.ref.delete();
-});
-}
+async function removeOld(){const now=new Date();const snap=await db.collection("mvs").get();snap.forEach(doc=>{if(!doc.data().createdAt)return;const days=(now-doc.data().createdAt.toDate())/(1000*60*60*24);if(days>30)doc.ref.delete();});}
 removeOld();
 
 /* CHART */
@@ -194,57 +161,17 @@ currentFirst=newFirst;
 });
 
 /* DELETAR */
-async function deleteMV(id){
-await db.collection("mvs").doc(id).delete();
-}
+async function deleteMV(id){await db.collection("mvs").doc(id).delete();}
 
 /* HALL */
-function showHall(){
-charts.classList.add("hidden");
-history.classList.add("hidden");
-hall.classList.remove("hidden");
+function showHall(){charts.classList.add("hidden");history.classList.add("hidden");hall.classList.remove("hidden");db.collection("mvs").orderBy("points","desc").limit(1).get().then(snap=>{hall.innerHTML="<h2>🏆 Líder Atual</h2>";snap.forEach(doc=>{const d=doc.data();hall.innerHTML+=`<div class="card"><h3>${d.artist}</h3><p>${d.title}</p><p>${d.points} pontos</p></div>`;});});}
+function showCharts(){charts.classList.remove("hidden");history.classList.add("hidden");hall.classList.add("hidden");}
+function showHistory(){charts.classList.add("hidden");history.classList.remove("hidden");hall.classList.add("hidden");}
+function extractID(url){const regExp=/(?:youtube\.com\/.*v=|youtu\.be\/)([^&]+)/;const match=url.match(regExp);return match?match[1]:"";}
 
-db.collection("mvs").orderBy("points","desc").limit(1).get()
-.then(snap=>{
-hall.innerHTML="<h2>🏆 Líder Atual</h2>";
-snap.forEach(doc=>{
-const d=doc.data();
-hall.innerHTML+=`<div class="card">
-<h3>${d.artist}</h3>
-<p>${d.title}</p>
-<p>${d.points} pontos</p>
-</div>`;
-});
-});
-}
-
-function showCharts(){
-charts.classList.remove("hidden");
-history.classList.add("hidden");
-hall.classList.add("hidden");
-}
-
-function showHistory(){
-charts.classList.add("hidden");
-history.classList.remove("hidden");
-hall.classList.add("hidden");
-}
-
-function extractID(url){
-const regExp=/(?:youtube\.com\/.*v=|youtu\.be\/)([^&]+)/;
-const match=url.match(regExp);
-return match?match[1]:"";
-}
-
-  // =========================
-// RESET SEMANAL
-// =========================
-
+/* RESET SEMANAL */
 async function weeklyReset(){
-
   const today = new Date();
-
-  // Descobre a segunda-feira da semana atual
   const monday = new Date(today);
   monday.setDate(today.getDate() - today.getDay() + 1);
   const weekString = monday.toISOString().split("T")[0];
@@ -257,50 +184,24 @@ async function weeklyReset(){
     return;
   }
 
-  // Se já resetou essa semana, não faz nada
   if(configDoc.data().lastReset === weekString) return;
 
-  // Pega ranking atual
-  const snap = await db.collection("mvs")
-    .orderBy("points","desc")
-    .get();
-
+  const snap = await db.collection("mvs").orderBy("points","desc").get();
   let ranking = [];
   let pos = 1;
 
   for(const doc of snap.docs){
     const d = doc.data();
-
-    ranking.push({
-      artist:d.artist,
-      title:d.title,
-      company:d.company,
-      points:d.points,
-      position:pos
-    });
-
-    // Zera pontos
+    ranking.push({artist:d.artist,title:d.title,company:d.company,points:d.points,position:pos});
     await doc.ref.update({ points:0 });
-
     pos++;
   }
 
-  // Salva histórico da semana
-  await db.collection("weeklyCharts").doc(weekString).set({
-    week:weekString,
-    ranking:ranking,
-    createdAt:firebase.firestore.FieldValue.serverTimestamp()
-  });
-
-  // Marca que já resetou
-  await configRef.update({
-    lastReset:weekString
-  });
-
+  await db.collection("weeklyCharts").doc(weekString).set({week:weekString,ranking:ranking,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+  await configRef.update({lastReset:weekString});
   console.log("Ranking semanal salvo:", weekString);
 }
 
-// Executa ao abrir o site
 weeklyReset();
 </script>
 
