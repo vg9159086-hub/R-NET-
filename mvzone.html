@@ -147,7 +147,6 @@ src="https://www.youtube.com/embed/${extractID(d.url)}"
 frameborder="0" allowfullscreen></iframe>
 <p>Pontos: ${d.points||0}</p>
 <img src="like.png" class="voteImg" onclick="vote('${doc.id}',1)">
-<img src="deslike.png" class="voteImg" onclick="vote('${doc.id}',-1)">
 ${currentCompany===d.company?`<button onclick="deleteMV('${doc.id}')">Remover</button>`:""}
 </div>`;
 pos++;
